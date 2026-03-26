@@ -2,26 +2,54 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel Mansis - Inventario</title>
+    <title>Gestor de Calibraciones - Mansis</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-slate-50 p-4 md:p-8">
-    <div class="max-w-7xl mx-auto">
-        
-        <div class="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800">Inventario de Herramientas</h1>
-                <p class="text-slate-500">Gestión Mansis - Tabla: equipos</p>
-            </div>
-            <button onclick="logout()" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors">Cerrar Sesión</button>
-        </div>
+<body class="bg-slate-100 min-h-screen">
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <input type="text" id="f_codigo" placeholder="Código..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
-            <input type="text" id="f_nombre" placeholder="Nombre..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
-            <input type="text" id="f_gfh" placeholder="GFH..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
-            <button onclick="cargarDatos()" class="bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Filtrar</button>
+    <nav class="bg-white border-b border-slate-200 p-4 sticky top-0 z-10 shadow-sm">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white">
+                    <i class="fa-solid fa-microchip text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800 leading-none">Mansis Lab</h1>
+                    <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">Gestión de Calibraciones</span>
+                </div>
+            </div>
+            <button onclick="logout()" class="text-slate-500 hover:text-red-600 font-medium text-sm transition-colors">
+                <i class="fa-solid fa-power-off mr-1"></i> Cerrar Sesión
+            </button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-4 md:p-8">
+        
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">Búsqueda rápida</label>
+                    <input type="text" id="f_general" placeholder="Código o Nombre..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">Ubicación (GFH)</label>
+                    <input type="text" id="f_gfh" placeholder="Ej: TS-L17" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                </div>
+                <div class="space-y-1 flex flex-col justify-end">
+                    <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-all">
+                        <input type="checkbox" id="f_solo_calib" class="w-5 h-5 text-blue-600 rounded">
+                        <span class="text-sm font-semibold text-slate-700">Solo con Calibración</span>
+                    </label>
+                </div>
+                <div class="flex items-end">
+                    <button onclick="cargarDatos()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 shadow-lg transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass"></i> Aplicar Filtros
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -29,80 +57,93 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200">
-                            <th class="p-4 text-sm font-semibold text-slate-600">Código</th>
-                            <th class="p-4 text-sm font-semibold text-slate-600">Nombre</th>
-                            <th class="p-4 text-sm font-semibold text-slate-600">Marca / Modelo</th>
-                            <th class="p-4 text-sm font-semibold text-slate-600">GFH</th>
-                            <th class="p-4 text-sm font-semibold text-slate-600">Fecha Cal.</th>
-                            <th class="p-4 text-sm font-semibold text-slate-600">Estado</th>
+                            <th class="p-4 text-xs font-bold text-slate-500 uppercase">Equipo</th>
+                            <th class="p-4 text-xs font-bold text-slate-500 uppercase">Ubicación</th>
+                            <th class="p-4 text-xs font-bold text-slate-500 uppercase">Última Cal.</th>
+                            <th class="p-4 text-xs font-bold text-slate-500 uppercase">Próxima Revisión</th>
+                            <th class="p-4 text-xs font-bold text-slate-500 uppercase">Estado</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-body" class="text-slate-700">
+                    <tbody id="tabla-body" class="divide-y divide-slate-100">
                         </tbody>
                 </table>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         const _URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
         const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo';
         const client = supabase.createClient(_URL, _KEY);
 
+        function calcularProxima(fechaStr) {
+            if (!fechaStr || fechaStr === '-') return { fecha: 'Pendiente', clase: 'text-slate-400' };
+            
+            try {
+                // Formato esperado DD/MM/YYYY
+                const partes = fechaStr.split('/');
+                const fecha = new Date(partes[2], partes[1] - 1, partes[0]);
+                
+                // Sumamos 1 año (ajustable por equipo en el futuro)
+                fecha.setFullYear(fecha.getFullYear() + 1);
+                
+                const hoy = new Date();
+                const diffMeses = (fecha - hoy) / (1000 * 60 * 60 * 24 * 30);
+                
+                let clase = 'text-green-600 font-bold';
+                if (diffMeses < 0) clase = 'text-red-600 font-bold animate-pulse';
+                else if (diffMeses < 2) clase = 'text-orange-500 font-bold';
+
+                return { 
+                    fecha: fecha.toLocaleDateString('es-ES'), 
+                    clase: clase 
+                };
+            } catch(e) { return { fecha: 'Error fecha', clase: 'text-red-300' }; }
+        }
+
         async function cargarDatos() {
             const body = document.getElementById('tabla-body');
-            body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400 italic">Cargando datos de la tabla equipos...</td></tr>';
+            body.innerHTML = '<tr><td colspan="5" class="p-20 text-center"><i class="fa-solid fa-circle-notch animate-spin text-3xl text-blue-500"></i></td></tr>';
 
-            const f_cod = document.getElementById('f_codigo').value;
-            const f_nom = document.getElementById('f_nombre').value;
+            const f_gen = document.getElementById('f_general').value;
             const f_gfh = document.getElementById('f_gfh').value;
+            const soloCalib = document.getElementById('f_solo_calib').checked;
 
-            // IMPORTANTE: Ahora apunta a la tabla 'equipos'
             let query = client.from('equipos').select('*');
 
-            if (f_cod) query = query.ilike('Código', `%${f_cod}%`);
-            if (f_nom) query = query.ilike('Nombre', `%${f_nom}%`);
+            if (f_gen) query = query.or(`Código.ilike.%${f_gen}%,Nombre.ilike.%${f_gen}%`);
             if (f_gfh) query = query.ilike('GFH', `%${f_gfh}%`);
+            if (soloCalib) query = query.eq('Equipos con calibración', 'Sí');
 
-            const { data, error } = await query.limit(100);
+            const { data, error } = await query.order('Nombre', { ascending: true }).limit(100);
 
             if (error) {
-                body.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-red-500 font-bold">Error: ${error.message}</td></tr>`;
-                return;
-            }
-
-            if (data.length === 0) {
-                body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400">No hay datos en la tabla "equipos"</td></tr>';
+                body.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-red-500">${error.message}</td></tr>`;
                 return;
             }
 
             body.innerHTML = data.map(item => {
-                // Función para buscar columnas ignorando mayúsculas/minúsculas o puntos
-                const getCol = (names) => {
-                    for (let n of names) { if (item[n] !== undefined && item[n] !== null) return item[n]; }
-                    return '-';
-                };
-
-                const codigo = getCol(['Código', 'codigo']);
-                const nombre = getCol(['Nombre', 'nombre']);
-                const marca = getCol(['Marca', 'marca']);
-                const modelo = getCol(['Modelo', 'modelo']);
-                const gfh = getCol(['GFH', 'gfh']);
-                const fecha = getCol(['Fecha cal.', 'fecha cal', 'Fecha_cal']);
-                const estado = getCol(['Estado', 'estado']);
-
+                const prox = calcularProxima(item['Fecha cal.']);
+                const estado = item['Estado'] || 'S/D';
+                
                 return `
-                    <tr class="border-b border-slate-100 hover:bg-blue-50/50 transition-colors">
-                        <td class="p-4 font-mono text-sm text-blue-600 font-bold">${codigo}</td>
-                        <td class="p-4 font-medium text-slate-800">${nombre}</td>
+                    <tr class="hover:bg-blue-50/30 transition-all">
                         <td class="p-4">
-                            <span class="block text-sm text-slate-700">${marca}</span>
-                            <span class="text-xs text-slate-400 font-mono">${modelo}</span>
+                            <div class="font-bold text-slate-800">${item['Nombre'] || '-'}</div>
+                            <div class="text-xs font-mono text-blue-500">${item['Código'] || '-'}</div>
                         </td>
-                        <td class="p-4 text-sm text-slate-600">${gfh}</td>
-                        <td class="p-4 text-sm text-slate-500">${fecha}</td>
                         <td class="p-4">
-                            <span class="px-3 py-1 rounded-full text-[10px] font-bold ${estado === 'DISPONIBLE' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                            <div class="text-sm text-slate-600 font-medium">${item['GFH'] || '-'}</div>
+                            <div class="text-[10px] text-slate-400 uppercase italic">${item['Marca'] || ''} ${item['Modelo'] || ''}</div>
+                        </td>
+                        <td class="p-4 text-sm text-slate-500">
+                            ${item['Fecha cal.'] || '<span class="text-slate-300 italic">No registrada</span>'}
+                        </td>
+                        <td class="p-4 text-sm ${prox.clase}">
+                            <i class="fa-regular fa-calendar-check mr-1 text-xs"></i> ${prox.fecha}
+                        </td>
+                        <td class="p-4">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${estado === 'DISPONIBLE' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
                                 ${estado}
                             </span>
                         </td>
