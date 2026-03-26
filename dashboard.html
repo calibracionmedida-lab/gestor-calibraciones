@@ -273,7 +273,7 @@ const filtrados = listadoEquipos.filter(item => {
     const coincideBusqueda = !f_gen || item.Nombre.toLowerCase().includes(f_gen) || item.Código.toLowerCase().includes(f_gen);
     const coincideCentro = !f_gfh || (item.GFH && item.GFH.includes(f_gfh));
     const coincideAlerta = !filtroAlertas || prox.caducado;
-    const coincideCalib = !f_cal || item.calibracion === 'Sí';
+    const coincideCalib = !f_cal || item['Equipos con calibración'] === 'Sí';
 
     return coincideBusqueda && coincideCentro && coincideAlerta && coincideCalib;
 });
