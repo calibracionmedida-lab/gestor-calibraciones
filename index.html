@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -14,7 +14,7 @@
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Email</label>
-                <input type="email" id="email" class="w-full p-3 border rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="email" id="email" class="w-full p-3 border rounded-lg mt-1 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="nombre@correo.com">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Contraseña</label>
@@ -22,32 +22,55 @@
             </div>
             
             <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">Entrar</button>
+            
+            <div class="text-center">
+                <button onclick="resetPassword()" class="text-xs text-slate-400 hover:text-blue-600 transition-colors underline decoration-slate-200 underline-offset-4">
+                    ¿Has olvidado tu contraseña?
+                </button>
+            </div>
         </div>
 
         <p id="msg" class="mt-4 text-center text-sm font-medium"></p>
     </div>
 
     <script>
-        // Hemos cambiado el nombre de la variable a 'client' para que no choque con la librería
         const _URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
         const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo';
         
         const client = supabase.createClient(_URL, _KEY);
+
         async function resetPassword() {
-            const email = prompt("Introduce tu correo:");
+            // Intentamos coger el email del input si ya lo han escrito
+            let email = document.getElementById('email').value;
+            
+            if (!email) {
+                email = prompt("Introduce tu correo para recibir el enlace de recuperación:");
+            }
+            
+            if (!email) return; // Si cancela o sigue vacío
+
             const { error } = await client.auth.resetPasswordForEmail(email, {
-                redirectTo: 'https://tu-web.vercel.app/update-password.html',
+                // Usamos tu URL configurada en Vercel
+                redirectTo: 'https://gestor-calibraciones.vercel.app/cambiar-clave.html',
             });
-            if (error) alert(error.message);
-            else alert("Link enviado a tu correo.");
-}
+
+            if (error) {
+                showMsg("Error: " + error.message, 'text-red-600');
+            } else {
+                showMsg("Te hemos enviado un link de recuperación a " + email, 'text-green-600 font-bold');
+            }
+        }
+
         async function handleLogin() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const msg = document.getElementById('msg');
             
-            msg.innerText = "Verificando...";
-            msg.className = "mt-4 text-center text-sm font-medium text-blue-600";
+            if (!email || !password) {
+                showMsg("Por favor, rellena todos los campos", 'text-orange-600');
+                return;
+            }
+
+            showMsg("Verificando...", 'text-blue-600');
 
             const { data, error } = await client.auth.signInWithPassword({ 
                 email: email, 
@@ -58,7 +81,6 @@
                 showMsg("Error: " + error.message, 'text-red-600');
             } else {
                 showMsg('¡Acceso correcto! Entrando...', 'text-green-600');
-                // Cuando funcione, aquí pondremos la redirección al dashboard
                 setTimeout(() => {
                     window.location.href = 'dashboard.html';
                 }, 1000);
