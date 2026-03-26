@@ -10,92 +10,80 @@
 </head>
 <body class="bg-slate-100 min-h-screen flex">
 
-    <aside class="w-64 bg-slate-900 text-white flex flex-col sticky top-0 h-screen">
+    <aside class="w-64 bg-slate-900 text-white flex flex-col sticky top-0 h-screen shadow-xl z-20">
         <div class="p-6 border-b border-slate-800">
-            <h1 class="text-xl font-bold text-blue-400">Mansis Lab</h1>
+            <h1 class="text-xl font-bold text-blue-400"><i class="fa-solid fa-microchip mr-2"></i>Mansis Lab</h1>
         </div>
         <nav class="flex-1 p-4 space-y-2">
-            <button onclick="showSection('inventario')" class="w-full text-left p-3 rounded-lg hover:bg-slate-800 flex items-center gap-3">
+            <button onclick="showSection('inventario')" class="w-full text-left p-3 rounded-lg hover:bg-slate-800 focus:bg-blue-600 transition-colors flex items-center gap-3">
                 <i class="fa-solid fa-list w-5"></i> Inventario
             </button>
-            <button onclick="showSection('calendario')" class="w-full text-left p-3 rounded-lg hover:bg-slate-800 flex items-center gap-3">
-                <i class="fa-solid fa-calendar-days w-5"></i> Calendario Cal.
+            <button onclick="showSection('calendario')" class="w-full text-left p-3 rounded-lg hover:bg-slate-800 focus:bg-blue-600 transition-colors flex items-center gap-3">
+                <i class="fa-solid fa-calendar-days w-5"></i> Calendario
             </button>
-            <button onclick="location.href='settings.html'" class="w-full text-left p-3 rounded-lg hover:bg-slate-800 flex items-center gap-3">
-                <i class="fa-solid fa-users-gear w-5"></i> Ajustes / Usuarios
+            <button onclick="location.href='settings.html'" class="w-full text-left p-3 rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-3 mt-8 border border-slate-700">
+                <i class="fa-solid fa-users-gear w-5"></i> Ajustes / Admin
             </button>
         </nav>
-        <button onclick="logout()" class="p-6 text-slate-400 hover:text-white text-left">
-            <i class="fa-solid fa-power-off mr-2"></i> Salir
+        <button onclick="logout()" class="p-6 text-slate-400 hover:text-white text-left border-t border-slate-800">
+            <i class="fa-solid fa-power-off mr-2"></i> Cerrar Sesión
         </button>
     </aside>
 
-    <main class="flex-1 p-8">
-        <section id="sec-inventario">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-slate-800">Gestión de Equipos</h2>
-                <div class="flex gap-2">
-                    <input type="text" id="busqueda" oninput="cargarDatos()" placeholder="Buscar código o nombre..." class="p-2 border rounded-lg text-sm w-64">
-                    <label class="flex items-center gap-2 bg-white px-3 border rounded-lg text-sm cursor-pointer">
-                        <input type="checkbox" id="f_solo_calib" onchange="cargarDatos()"> Calibrables
-                    </label>
-                </div>
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <div class="bg-white p-4 border-b border-slate-200 shadow-sm flex gap-4 items-end z-10">
+            <div class="flex-1">
+                <label class="block text-xs font-bold text-slate-500 mb-1">Buscar Equipo</label>
+                <input type="text" id="f_general" oninput="aplicarFiltros()" placeholder="Código o Nombre..." class="w-full p-2 border rounded-lg bg-slate-50">
             </div>
-
-            <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-slate-50 border-b">
-                        <tr>
-                            <th class="p-4 text-xs font-bold text-slate-500 uppercase">Equipo</th>
-                            <th class="p-4 text-xs font-bold text-slate-500 uppercase">GFH</th>
-                            <th class="p-4 text-xs font-bold text-slate-500 uppercase">Últ. Cal.</th>
-                            <th class="p-4 text-xs font-bold text-slate-500 uppercase">Estado</th>
-                            <th class="p-4 text-xs font-bold text-slate-500 uppercase">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-body" class="divide-y divide-slate-100"></tbody>
-                </table>
+            <div class="w-48">
+                <label class="block text-xs font-bold text-slate-500 mb-1">Centro (GFH)</label>
+                <select id="f_gfh" onchange="aplicarFiltros()" class="w-full p-2 border rounded-lg bg-slate-50 cursor-pointer">
+                    <option value="">Todos los centros</option>
+                    <option value="TS-L5">TS-L5 (Clínico)</option>
+                    <option value="TS-L7">TS-L7 (La Fe)</option>
+                    <option value="TS-L15">TS-L15 (Alicante)</option>
+                    <option value="TS-L17">TS-L17 (Orihuela)</option>
+                    <option value="TS001">TS001 (Oficina)</option>
+                    <option value="TS-DI">TS-DI (Oficina DI)</option>
+                    <option value="TS-HGV">TS-HGV (Hospital General)</option>
+                </select>
             </div>
-        </section>
-
-        <section id="sec-calendario" class="hidden">
-            <h2 class="text-2xl font-bold text-slate-800 mb-6">Calendario de Caducidades</h2>
-            <div class="bg-white p-6 rounded-xl shadow-sm border" id="calendar-container"></div>
-        </section>
-    </main>
-
-    <div id="modal-edit" class="fixed inset-0 bg-black/50 hidden z-50 flex justify-end">
-        <div class="bg-white w-full max-w-md h-full p-8 shadow-2xl overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold">Editar Equipo</h3>
-                <button onclick="closeEdit()"><i class="fa-solid fa-xmark text-xl"></i></button>
+            <div class="w-48">
+                <label class="flex items-center gap-2 p-2 border rounded-lg bg-slate-50 cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" id="f_solo_calib" onchange="aplicarFiltros()" class="w-4 h-4">
+                    <span class="text-sm font-semibold text-slate-700">Solo Calibrables</span>
+                </label>
             </div>
-            <form id="form-equipo" class="space-y-4">
-                <input type="hidden" id="edit-id">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Nombre</label>
-                    <input type="text" id="edit-nombre" class="w-full p-2 border rounded-lg bg-slate-50" readonly>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Última Fecha Calibración</label>
-                    <input type="text" id="edit-fecha" placeholder="DD/MM/YYYY" class="w-full p-2 border rounded-lg">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">Estado</label>
-                    <select id="edit-estado" class="w-full p-2 border rounded-lg">
-                        <option value="DISPONIBLE">DISPONIBLE</option>
-                        <option value="EN REPARACIÓN">EN REPARACIÓN</option>
-                        <option value="BAJA">BAJA</option>
-                    </select>
-                </div>
-                <button type="button" onclick="guardarCambios()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 mt-4">Guardar Cambios</button>
-            </form>
         </div>
-    </div>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <section id="sec-inventario">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 border-b">
+                            <tr>
+                                <th class="p-4 text-xs font-bold text-slate-500 uppercase">Equipo</th>
+                                <th class="p-4 text-xs font-bold text-slate-500 uppercase">GFH</th>
+                                <th class="p-4 text-xs font-bold text-slate-500 uppercase">Última Calibración</th>
+                                <th class="p-4 text-xs font-bold text-slate-500 uppercase">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="sec-calendario" class="hidden h-full">
+                <div class="bg-white p-6 rounded-xl shadow-sm border h-full" id="calendar-container"></div>
+            </section>
+        </div>
+    </main>
 
     <script>
         const _URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
-        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo'; 
+        const _KEY = 'TU_CLAVE_ANON_AQUI'; // PON TU CLAVE AQUÍ
         const client = supabase.createClient(_URL, _KEY);
         let calendar;
 
@@ -106,27 +94,37 @@
             if(id === 'calendario') initCalendar();
         }
 
-        async function cargarDatos() {
-            const body = document.getElementById('tabla-body');
-            const search = document.getElementById('busqueda').value;
+        function aplicarFiltros() {
+            cargarTabla();
+            if(calendar) calendar.refetchEvents(); // Recarga el calendario con los nuevos filtros
+        }
+
+        function buildQuery() {
+            const f_gen = document.getElementById('f_general').value;
+            const f_gfh = document.getElementById('f_gfh').value;
             const soloCalib = document.getElementById('f_solo_calib').checked;
 
             let query = client.from('equipos').select('*');
-            if(search) query = query.or(`Código.ilike.%${search}%,Nombre.ilike.%${search}%`);
-            if(soloCalib) query = query.eq('Equipos con calibración', 'Sí');
+            if (f_gen) query = query.or(`Código.ilike.%${f_gen}%,Nombre.ilike.%${f_gen}%`);
+            if (f_gfh) query = query.ilike('GFH', `%${f_gfh}%`);
+            if (soloCalib) query = query.eq('Equipos con calibración', 'Sí');
+            
+            return query;
+        }
 
-            const { data } = await query.limit(50);
+        async function cargarTabla() {
+            const body = document.getElementById('tabla-body');
+            body.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>';
+            
+            const { data, error } = await buildQuery().limit(100);
+            if (error) return body.innerHTML = `<tr><td colspan="4" class="text-red-500">${error.message}</td></tr>`;
+
             body.innerHTML = data.map(item => `
-                <tr class="text-sm">
-                    <td class="p-4 font-medium">${item.Nombre} <br><span class="text-[10px] text-blue-500 font-mono">${item.Código}</span></td>
-                    <td class="p-4 text-slate-500">${item.GFH || '-'}</td>
-                    <td class="p-4">${item['Fecha cal.'] || '-'}</td>
-                    <td class="p-4"><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100">${item.Estado || 'S/D'}</span></td>
-                    <td class="p-4">
-                        <button onclick='openEdit(${JSON.stringify(item)})' class="text-blue-600 hover:bg-blue-50 p-2 rounded-lg">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </button>
-                    </td>
+                <tr class="hover:bg-slate-50 transition-colors text-sm">
+                    <td class="p-4 font-medium">${item.Nombre || '-'} <br><span class="text-[10px] text-blue-500 font-mono">${item.Código || '-'}</span></td>
+                    <td class="p-4 text-slate-600">${item.GFH || '-'}</td>
+                    <td class="p-4 font-mono text-slate-500">${item['Fecha cal.'] || '-'}</td>
+                    <td class="p-4"><span class="px-2 py-1 bg-slate-100 rounded text-[10px] font-bold">${item.Estado || 'S/D'}</span></td>
                 </tr>
             `).join('');
         }
@@ -134,48 +132,33 @@
         function initCalendar() {
             const calEl = document.getElementById('calendar-container');
             if(calendar) calendar.destroy();
+            
             calendar = new FullCalendar.Calendar(calEl, {
                 initialView: 'dayGridMonth',
                 locale: 'es',
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
                 events: async function(info, success, failure) {
-                    const { data } = await client.from('equipos').select('Nombre, "Fecha cal."').not('"Fecha cal."', 'is', null);
-                    const evts = data.map(e => {
+                    // Usamos la misma query de los filtros, pero filtramos los que no tienen fecha
+                    const { data } = await buildQuery().not('"Fecha cal."', 'is', null);
+                    
+                    const evts = data.filter(e => e['Fecha cal.'] && e['Fecha cal.'] !== '-').map(e => {
                         const p = e['Fecha cal.'].split('/');
-                        const fechaBase = new Date(p[2], p[1]-1, p[0]);
-                        fechaBase.setFullYear(fechaBase.getFullYear() + 1); // Suma 1 año
-                        return { title: 'EXP: ' + e.Nombre, start: fechaBase.toISOString().split('T')[0], color: '#ef4444' };
-                    });
+                        if(p.length === 3) {
+                            const fechaBase = new Date(p[2], p[1]-1, p[0]);
+                            fechaBase.setFullYear(fechaBase.getFullYear() + 1); // +1 Año
+                            return { title: e.Nombre, start: fechaBase.toISOString().split('T')[0], color: '#ef4444' };
+                        }
+                        return null;
+                    }).filter(e => e !== null);
+                    
                     success(evts);
                 }
             });
             calendar.render();
         }
 
-        function openEdit(item) {
-            document.getElementById('edit-id').value = item.id; // Asegúrate de que tu tabla tiene columna 'id'
-            document.getElementById('edit-nombre').value = item.Nombre;
-            document.getElementById('edit-fecha').value = item['Fecha cal.'] || '';
-            document.getElementById('edit-estado').value = item.Estado || 'DISPONIBLE';
-            document.getElementById('modal-edit').classList.remove('hidden');
-        }
-
-        function closeEdit() { document.getElementById('modal-edit').classList.add('hidden'); }
-
-        async function guardarCambios() {
-            const id = document.getElementById('edit-id').value;
-            const nuevaFecha = document.getElementById('edit-fecha').value;
-            const nuevoEstado = document.getElementById('edit-estado').value;
-
-            const { error } = await client.from('equipos')
-                .update({ 'Fecha cal.': nuevaFecha, 'Estado': nuevoEstado })
-                .eq('id', id);
-
-            if(error) alert("Error al guardar: " + error.message);
-            else { alert("Guardado con éxito"); closeEdit(); cargarDatos(); }
-        }
-
         async function logout() { await client.auth.signOut(); location.href='index.html'; }
-        cargarDatos();
+        cargarTabla();
     </script>
 </body>
 </html>
