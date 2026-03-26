@@ -12,7 +12,7 @@
         <div class="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">Inventario de Herramientas</h1>
-                <p class="text-slate-500">Gestión de calibraciones Mansis</p>
+                <p class="text-slate-500">Gestión Mansis - Tabla: equipos</p>
             </div>
             <button onclick="logout()" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors">Cerrar Sesión</button>
         </div>
@@ -33,11 +33,12 @@
                             <th class="p-4 text-sm font-semibold text-slate-600">Nombre</th>
                             <th class="p-4 text-sm font-semibold text-slate-600">Marca / Modelo</th>
                             <th class="p-4 text-sm font-semibold text-slate-600">GFH</th>
-                            <th class="p-4 text-sm font-semibold text-slate-600">Últ. Calibración</th>
+                            <th class="p-4 text-sm font-semibold text-slate-600">Fecha Cal.</th>
                             <th class="p-4 text-sm font-semibold text-slate-600">Estado</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-body" class="text-slate-700"></tbody>
+                    <tbody id="tabla-body" class="text-slate-700">
+                        </tbody>
                 </table>
             </div>
         </div>
@@ -50,18 +51,18 @@
 
         async function cargarDatos() {
             const body = document.getElementById('tabla-body');
-            body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400 italic">Cargando inventario...</td></tr>';
+            body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400 italic">Cargando datos de la tabla equipos...</td></tr>';
 
             const f_cod = document.getElementById('f_codigo').value;
             const f_nom = document.getElementById('f_nombre').value;
             const f_gfh = document.getElementById('f_gfh').value;
 
-            let query = client.from('INVENTARIO_HERRAMIENTAS').select('*');
+            // IMPORTANTE: Ahora apunta a la tabla 'equipos'
+            let query = client.from('equipos').select('*');
 
-            // Filtros flexibles (prueban con y sin tilde por si acaso)
             if (f_cod) query = query.ilike('Código', `%${f_cod}%`);
             if (f_nom) query = query.ilike('Nombre', `%${f_nom}%`);
-            if (f_gfh) query = query.or(`GFH.ilike.%${f_gfh}%,GFH_1.ilike.%${f_gfh}%`);
+            if (f_gfh) query = query.ilike('GFH', `%${f_gfh}%`);
 
             const { data, error } = await query.limit(100);
 
@@ -70,20 +71,25 @@
                 return;
             }
 
+            if (data.length === 0) {
+                body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400">No hay datos en la tabla "equipos"</td></tr>';
+                return;
+            }
+
             body.innerHTML = data.map(item => {
-                // Función mágica para encontrar la columna correcta aunque tenga puntos o espacios
-                const buscar = (keys) => {
-                    for (let k of keys) { if (item[k] !== undefined && item[k] !== null) return item[k]; }
+                // Función para buscar columnas ignorando mayúsculas/minúsculas o puntos
+                const getCol = (names) => {
+                    for (let n of names) { if (item[n] !== undefined && item[n] !== null) return item[n]; }
                     return '-';
                 };
 
-                const codigo = buscar(['Código', 'codigo', 'Código ']);
-                const nombre = buscar(['Nombre', 'nombre', 'Nombre ']);
-                const marca = buscar(['Marca', 'marca']);
-                const modelo = buscar(['Modelo', 'modelo']);
-                const gfh = buscar(['GFH', 'gfh', 'GFH_1']);
-                const fecha = buscar(['Fecha cal.', 'fecha cal', 'Fecha_cal']);
-                const estado = buscar(['Estado', 'estado']);
+                const codigo = getCol(['Código', 'codigo']);
+                const nombre = getCol(['Nombre', 'nombre']);
+                const marca = getCol(['Marca', 'marca']);
+                const modelo = getCol(['Modelo', 'modelo']);
+                const gfh = getCol(['GFH', 'gfh']);
+                const fecha = getCol(['Fecha cal.', 'fecha cal', 'Fecha_cal']);
+                const estado = getCol(['Estado', 'estado']);
 
                 return `
                     <tr class="border-b border-slate-100 hover:bg-blue-50/50 transition-colors">
@@ -96,4 +102,21 @@
                         <td class="p-4 text-sm text-slate-600">${gfh}</td>
                         <td class="p-4 text-sm text-slate-500">${fecha}</td>
                         <td class="p-4">
-                            <span class="px-3 py-1 rounded-full text-
+                            <span class="px-3 py-1 rounded-full text-[10px] font-bold ${estado === 'DISPONIBLE' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                                ${estado}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function logout() {
+            await client.auth.signOut();
+            window.location.href = 'index.html';
+        }
+
+        cargarDatos();
+    </script>
+</body>
+</html>
