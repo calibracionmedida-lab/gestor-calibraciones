@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Mansis Lab</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-6">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold text-slate-800">Equipos de Mansis</h1>
+            <button onclick="supabase.auth.signOut().then(() => location.href='/')" class="bg-red-500 text-white px-4 py-2 rounded-lg">Cerrar Sesión</button>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex gap-4">
+            <input type="text" id="f_gfh" placeholder="Filtrar por GFH..." class="border p-2 rounded w-full">
+            <input type="text" id="f_marca" placeholder="Marca..." class="border p-2 rounded w-full">
+            <button onclick="cargarEquipos()" class="bg-blue-600 text-white px-6 py-2 rounded-lg">Buscar</button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-slate-100 text-slate-600 uppercase text-sm">
+                    <tr>
+                        <th class="p-4">Nº Serie</th>
+                        <th class="p-4">GFH</th>
+                        <th class="p-4">Marca</th>
+                        <th class="p-4">Modelo</th>
+                        <th class="p-4">Últ. Calibración</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
+        const SUPABASE_KEY = 'TU_CLAVE_ANON_AQUI'; // <--- PEGA TU CLAVE AQUÍ
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function cargarEquipos() {
+            const gfh = document.getElementById('f_gfh').value;
+            let query = supabase.from('equipos').select('*');
+            
+            if (gfh) query = query.ilike('gfh', `%${gfh}%`);
+
+            const { data, error } = await query;
+            if (error) return console.error(error);
+
+            const body = document.getElementById('tabla-body');
+            body.innerHTML = data.map(e => `
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="p-4">${e.num_serie}</td>
+                    <td class="p-4">${e.gfh}</td>
+                    <td class="p-4">${e.marca}</td>
+                    <td class="p-4">${e.modelo}</td>
+                    <td class="p-4">${e.fecha_calibracion || 'Pendiente'}</td>
+                </tr>
+            `).join('');
+        }
+        cargarEquipos();
+    </script>
+</body>
+</html>
