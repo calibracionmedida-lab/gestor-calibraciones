@@ -12,7 +12,7 @@
         <div class="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">Inventario de Herramientas</h1>
-                <p class="text-slate-500">Gestión de calibraciones y equipos</p>
+                <p class="text-slate-500">Gestión de calibraciones y equipos Mansis</p>
             </div>
             <button onclick="logout()" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors">Cerrar Sesión</button>
         </div>
@@ -20,7 +20,7 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <input type="text" id="f_codigo" placeholder="Buscar por Código..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
             <input type="text" id="f_nombre" placeholder="Nombre del equipo..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
-            <input type="text" id="f_gfh" placeholder="GFH (Centro)..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
+            <input type="text" id="f_gfh" placeholder="GFH..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
             <button onclick="cargarDatos()" class="bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Filtrar</button>
         </div>
 
@@ -31,12 +31,13 @@
                         <tr class="bg-slate-50 border-b border-slate-200">
                             <th class="p-4 text-sm font-semibold text-slate-600">Código</th>
                             <th class="p-4 text-sm font-semibold text-slate-600">Nombre</th>
-                            <th class="p-4 text-sm font-semibold text-slate-600">Marca/Modelo</th>
+                            <th class="p-4 text-sm font-semibold text-slate-600">Marca / Modelo</th>
                             <th class="p-4 text-sm font-semibold text-slate-600">GFH</th>
+                            <th class="p-4 text-sm font-semibold text-slate-600">Últ. Calibración</th>
                             <th class="p-4 text-sm font-semibold text-slate-600">Estado</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-body" class="text-slate-700 italic">
+                    <tbody id="tabla-body" class="text-slate-700">
                         </tbody>
                 </table>
             </div>
@@ -45,55 +46,73 @@
 
     <script>
         const _URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
-        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo'; // <--- ASEGÚRATE DE QUE ESTÉ TU CLAVE
+        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo';
         const client = supabase.createClient(_URL, _KEY);
 
         async function cargarDatos() {
-    const body = document.getElementById('tabla-body');
-    body.innerHTML = '<tr><td colspan="5" class="p-10 text-center text-slate-400">Buscando en Mansis...</td></tr>';
+            const body = document.getElementById('tabla-body');
+            body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400 italic">Buscando en Mansis...</td></tr>';
 
-    const f_cod = document.getElementById('f_codigo').value;
-    const f_nom = document.getElementById('f_nombre').value;
-    const f_gfh = document.getElementById('f_gfh').value;
+            const f_cod = document.getElementById('f_codigo').value;
+            const f_nom = document.getElementById('f_nombre').value;
+            const f_gfh = document.getElementById('f_gfh').value;
 
-    let query = client.from('INVENTARIO_HERRAMIENTAS').select('*');
+            // Consultamos la tabla (asegúrate que el nombre sea exacto)
+            let query = client.from('INVENTARIO_HERRAMIENTAS').select('*');
 
-    // Filtros usando los nombres exactos del CSV
-    if (f_cod) query = query.ilike('Código', `%${f_cod}%`);
-    if (f_nom) query = query.ilike('Nombre', `%${f_nom}%`);
-    if (f_gfh) query = query.ilike('GFH', `%${f_gfh}%`);
+            // Filtros (usamos ilike para que no importe mayúsculas/minúsculas)
+            // He puesto alternativas por si la columna se llama 'Código' o 'codigo'
+            if (f_cod) query = query.ilike('Código', `%${f_cod}%`);
+            if (f_nom) query = query.ilike('Nombre', `%${f_nom}%`);
+            if (f_gfh) query = query.ilike('GFH', `%${f_gfh}%`);
 
-    const { data, error } = await query.limit(50);
+            const { data, error } = await query.limit(100);
 
-    if (error) {
-        body.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-red-500">Error: ${error.message}</td></tr>`;
-        return;
-    }
+            if (error) {
+                body.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-red-500">Error: ${error.message}</td></tr>`;
+                return;
+            }
 
-    body.innerHTML = data.map(item => `
-        <tr class="border-b border-slate-100 hover:bg-blue-50/50 transition-colors">
-            <td class="p-4 font-mono text-sm text-blue-600">${item['Código'] || '-'}</td>
-            <td class="p-4 font-medium">${item['Nombre'] || '-'}</td>
-            <td class="p-4">
-                <span class="block text-sm text-slate-800">${item['Marca'] || '-'}</span>
-                <span class="text-xs text-slate-400">${item['Modelo'] || '-'}</span>
-            </td>
-            <td class="p-4 text-sm text-slate-600">${item['GFH'] || '-'}</td>
-            <td class="p-4">
-                <span class="px-2 py-1 rounded text-xs font-bold ${item['Estado'] === 'DISPONIBLE' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}">
-                    ${item['Estado'] || 'S/D'}
-                </span>
-            </td>
-        </tr>
-    `).join('');
-}
+            if (data.length === 0) {
+                body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400">No se han encontrado resultados.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = data.map(item => {
+                // Normalizamos los nombres de las columnas por si acaso
+                const codigo = item['Código'] || item['codigo'] || '-';
+                const nombre = item['Nombre'] || item['nombre'] || '-';
+                const marca = item['Marca'] || item['marca'] || '-';
+                const modelo = item['Modelo'] || item['modelo'] || '-';
+                const gfh = item['GFH'] || item['gfh'] || '-';
+                const fecha = item['Fecha cal.'] || item['fecha cal.'] || item['fecha_cal'] || 'No consta';
+                const estado = item['Estado'] || item['estado'] || 'S/D';
+
+                return `
+                    <tr class="border-b border-slate-100 hover:bg-blue-50/50 transition-colors">
+                        <td class="p-4 font-mono text-sm text-blue-600 font-bold">${codigo}</td>
+                        <td class="p-4 font-medium text-slate-800">${nombre}</td>
+                        <td class="p-4">
+                            <span class="block text-sm text-slate-700">${marca}</span>
+                            <span class="text-xs text-slate-400 font-mono">${modelo}</span>
+                        </td>
+                        <td class="p-4 text-sm text-slate-600 font-medium">${gfh}</td>
+                        <td class="p-4 text-sm text-slate-500">${fecha}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold ${estado === 'DISPONIBLE' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                                ${estado}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
 
         async function logout() {
             await client.auth.signOut();
             window.location.href = 'index.html';
         }
 
-        // Cargar al inicio
         cargarDatos();
     </script>
 </body>
