@@ -57,11 +57,9 @@
             const f_nom = document.getElementById('f_nombre').value;
             const f_gfh = document.getElementById('f_gfh').value;
 
-            // Consultamos la tabla (asegúrate que el nombre sea exacto)
             let query = client.from('INVENTARIO_HERRAMIENTAS').select('*');
 
-            // Filtros (usamos ilike para que no importe mayúsculas/minúsculas)
-            // He puesto alternativas por si la columna se llama 'Código' o 'codigo'
+            // Intentamos filtrar por los nombres que suelen dar problemas
             if (f_cod) query = query.ilike('Código', `%${f_cod}%`);
             if (f_nom) query = query.ilike('Nombre', `%${f_nom}%`);
             if (f_gfh) query = query.ilike('GFH', `%${f_gfh}%`);
@@ -69,24 +67,24 @@
             const { data, error } = await query.limit(100);
 
             if (error) {
-                body.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-red-500">Error: ${error.message}</td></tr>`;
-                return;
-            }
-
-            if (data.length === 0) {
-                body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400">No se han encontrado resultados.</td></tr>';
+                body.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-red-500 font-bold">Error de conexión: Activa las Policies en Supabase</td></tr>`;
                 return;
             }
 
             body.innerHTML = data.map(item => {
-                // Normalizamos los nombres de las columnas por si acaso
-                const codigo = item['Código'] || item['codigo'] || '-';
-                const nombre = item['Nombre'] || item['nombre'] || '-';
-                const marca = item['Marca'] || item['marca'] || '-';
-                const modelo = item['Modelo'] || item['modelo'] || '-';
-                const gfh = item['GFH'] || item['gfh'] || '-';
-                const fecha = item['Fecha cal.'] || item['fecha cal.'] || item['fecha_cal'] || 'No consta';
-                const estado = item['Estado'] || item['estado'] || 'S/D';
+                // Buscamos los datos sin importar si la columna tiene tildes o puntos
+                const getVal = (names) => {
+                    for (let n of names) { if (item[n]) return item[n]; }
+                    return '-';
+                };
+
+                const codigo = getVal(['Código', 'codigo']);
+                const nombre = getVal(['Nombre', 'nombre']);
+                const marca = getVal(['Marca', 'marca']);
+                const modelo = getVal(['Modelo', 'modelo']);
+                const gfh = getVal(['GFH', 'gfh']);
+                const fecha = getVal(['Fecha cal.', 'fecha cal.', 'fecha_cal']);
+                const estado = getVal(['Estado', 'estado']);
 
                 return `
                     <tr class="border-b border-slate-100 hover:bg-blue-50/50 transition-colors">
@@ -98,8 +96,8 @@
                         </td>
                         <td class="p-4 text-sm text-slate-600 font-medium">${gfh}</td>
                         <td class="p-4 text-sm text-slate-500">${fecha}</td>
-                        <td class="p-4">
-                            <span class="px-2 py-1 rounded-full text-[10px] font-bold ${estado === 'DISPONIBLE' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                        <td class="p-4 text-center">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-bold ${estado === 'DISPONIBLE' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
                                 ${estado}
                             </span>
                         </td>
