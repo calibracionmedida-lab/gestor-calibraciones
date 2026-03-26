@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Mansis Lab - Gestión Pro</title>
+    <title>Mansis Lab - Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -10,67 +10,74 @@
     <style>
         /* Animación de latido solo en el color del texto */
         @keyframes pulse-text {
-            0%, 100% { color: #dc2626; opacity: 1; }
-            50% { color: #ef4444; opacity: 0.5; }
+            0%, 100% { color: #dc2626; transform: scale(1); }
+            50% { color: #f87171; transform: scale(1.05); }
         }
-        .animate-text-red { animation: pulse-text 1.5s infinite; }
+        .animate-text-red { 
+            display: inline-block;
+            animation: pulse-text 1.5s infinite; 
+            font-weight: 900;
+        }
         .hidden { display: none !important; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex">
 
-    <aside class="w-64 bg-slate-900 text-white flex flex-col sticky top-0 h-screen z-20">
+    <aside class="w-64 bg-slate-900 text-white flex flex-col sticky top-0 h-screen z-20 shadow-xl">
         <div class="p-6 border-b border-slate-800 flex items-center gap-3">
             <div class="bg-blue-600 p-2 rounded-lg"><i class="fa-solid fa-microchip text-white"></i></div>
-            <h1 class="text-xl font-bold text-blue-400">Mansis Lab</h1>
+            <h1 class="text-xl font-bold text-blue-400 font-mono tracking-tighter">Mansis Lab</h1>
         </div>
         <nav class="flex-1 p-4 space-y-2">
-            <button onclick="showSection('inventario')" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 flex items-center gap-3">
+            <button onclick="showSection('inventario')" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 transition-all flex items-center gap-3 active:scale-95">
                 <i class="fa-solid fa-list w-5 text-blue-400"></i> Inventario
             </button>
-            <button onclick="showSection('calendario')" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 flex items-center gap-3">
+            <button onclick="showSection('calendario')" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 transition-all flex items-center gap-3 active:scale-95">
                 <i class="fa-solid fa-calendar-days w-5 text-blue-400"></i> Calendario
             </button>
             <div id="menu-admin" class="hidden border-t border-slate-800 mt-4 pt-4 space-y-2">
-                <p class="text-[10px] font-black text-slate-500 uppercase px-3 mb-2">Administración</p>
-                <button onclick="location.href='settings.html'" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 flex items-center gap-3">
+                <p class="text-[10px] font-black text-slate-500 uppercase px-3 mb-2 tracking-widest">Administración</p>
+                <button onclick="location.href='settings.html'" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 transition-all flex items-center gap-3">
                     <i class="fa-solid fa-users-gear w-5 text-slate-400"></i> Usuarios y SMTP
                 </button>
             </div>
         </nav>
-        <button onclick="logout()" class="p-6 text-slate-400 hover:text-red-400 text-left border-t border-slate-800">
+        <button onclick="logout()" class="p-6 text-slate-400 hover:text-red-400 text-left border-t border-slate-800 transition-colors">
             <i class="fa-solid fa-power-off mr-2"></i> Salir
         </button>
     </aside>
 
-    <main class="flex-1 overflow-y-auto">
-        <div class="bg-white p-4 border-b flex gap-4 items-end sticky top-0 z-10 shadow-sm">
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        <div class="bg-white p-4 border-b border-slate-200 shadow-sm flex gap-4 items-end z-10">
             <div class="flex-1">
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Buscador</label>
-                <input type="text" id="f_general" oninput="aplicarFiltros()" placeholder="Equipo..." class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">Buscador</label>
+                <input type="text" id="f_general" oninput="aplicarFiltros()" placeholder="Nombre o Código..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
             </div>
-            <div class="w-48">
-                <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Centro</label>
-                <select id="f_gfh" onchange="aplicarFiltros()" class="w-full p-2.5 bg-slate-50 border rounded-xl outline-none cursor-pointer">
-                    <option value="">TODOS</option>
+            <div class="w-56">
+                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">Centro (GFH)</label>
+                <select id="f_gfh" onchange="aplicarFiltros()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none cursor-pointer">
+                    <option value="">TODOS LOS CENTROS</option>
                     <option value="TS-L5">TS-L5</option>
                     <option value="TS-L7">TS-L7</option>
+                    <option value="TS-L15">TS-L15</option>
                     <option value="TS-L17">TS-L17</option>
+                    <option value="TS001">TS001</option>
                 </select>
             </div>
         </div>
 
-        <div class="p-6">
+        <div class="flex-1 overflow-y-auto p-6">
             <section id="sec-inventario">
-                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="bg-slate-50 border-b">
-                            <tr>
-                                <th class="p-4 uppercase text-[10px] font-black text-slate-400">Equipo</th>
-                                <th class="p-4 uppercase text-[10px] font-black text-slate-400">GFH</th>
-                                <th class="p-4 uppercase text-[10px] font-black text-slate-400">Última Cal.</th>
-                                <th class="p-4 uppercase text-[10px] font-black text-slate-400">Próxima Revisión</th>
-                                <th class="p-4 uppercase text-[10px] font-black text-slate-400 text-center">Editar</th>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200">
+                                <th class="p-4 text-[10px] font-black text-slate-400 uppercase">Equipo / Código</th>
+                                <th class="p-4 text-[10px] font-black text-slate-400 uppercase">Ubicación</th>
+                                <th class="p-4 text-[10px] font-black text-slate-400 uppercase text-center">Última Cal.</th>
+                                <th class="p-4 text-[10px] font-black text-slate-400 uppercase">Próxima Revisión</th>
+                                <th class="p-4 text-[10px] font-black text-slate-400 uppercase text-center">Editar</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-body" class="divide-y divide-slate-100"></tbody>
@@ -78,51 +85,53 @@
                 </div>
             </section>
 
-            <section id="sec-calendario" class="hidden h-[80vh]">
-                <div id="calendar-container" class="bg-white p-6 rounded-2xl shadow-sm border h-full"></div>
+            <section id="sec-calendario" class="hidden h-full">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-full" id="calendar-container"></div>
             </section>
         </div>
     </main>
 
     <div id="modal-edit" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex justify-end backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md h-full p-8 shadow-2xl animate-[slideIn_0.3s_ease-out]">
-            <h3 class="text-2xl font-bold mb-8">Ajustes del Equipo</h3>
-            <form class="space-y-6">
+        <div class="bg-white w-full max-w-md h-full p-8 shadow-2xl animate-[slideIn_0.3s_ease-out] flex flex-col">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-bold text-slate-800">Ajustar Equipo</h3>
+                <button onclick="closeEdit()" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fa-solid fa-circle-xmark text-3xl"></i></button>
+            </div>
+            <form class="space-y-6 flex-1">
                 <input type="hidden" id="edit-id">
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Última Calibración</label>
-                    <input type="text" id="edit-fecha" placeholder="DD/MM/YYYY" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="block text-xs font-black text-slate-400 uppercase mb-2">Última Calibración</label>
+                    <input type="text" id="edit-fecha" placeholder="DD/MM/YYYY" class="w-full p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-mono">
                 </div>
                 
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Periodicidad de Calibración</label>
+                    <label class="block text-xs font-black text-slate-400 uppercase mb-2">Periodicidad</label>
                     <div class="flex gap-2">
-                        <input type="number" id="peri-valor" value="12" class="w-24 p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-center">
-                        <select id="peri-unidad" class="flex-1 p-3 border rounded-xl bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="number" id="peri-valor" class="w-24 p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-center font-bold">
+                        <select id="peri-unidad" class="flex-1 p-4 border border-slate-200 rounded-2xl bg-white outline-none focus:ring-2 focus:ring-blue-500 font-bold">
                             <option value="1">Meses</option>
                             <option value="12">Años</option>
                         </select>
                     </div>
-                    <p class="text-[10px] text-slate-400 mt-2 italic">* El sistema calculará la fecha sumando este tiempo a la última calibración.</p>
                 </div>
 
-                <button type="button" onclick="guardarCambios()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold uppercase hover:bg-blue-700 shadow-lg shadow-blue-200 mt-10 transition-all">
-                    Guardar y Recalcular
+                <button type="button" onclick="guardarCambios()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all mt-10">
+                    Actualizar y Recalcular
                 </button>
-                <button type="button" onclick="closeEdit()" class="w-full text-slate-400 font-bold py-2">Cancelar</button>
             </form>
         </div>
     </div>
 
     <script>
         const _URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
-        const _KEY = 'TU_KEY_AQUI'; 
+        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo'; 
         const client = supabase.createClient(_URL, _KEY);
+        let calendar;
 
         async function checkUser() {
             const { data: { user } } = await client.auth.getUser();
             if(!user) window.location.href = 'index.html';
-            if(user.user_metadata.role === 'admin') document.getElementById('menu-admin').classList.remove('hidden');
+            if(user.user_metadata?.role === 'admin') document.getElementById('menu-admin').classList.remove('hidden');
         }
 
         function calcularProxima(fechaStr, mesesTotales = 12) {
@@ -135,34 +144,48 @@
                 const hoy = new Date();
                 const diffMeses = (fecha - hoy) / (1000 * 60 * 60 * 24 * 30);
                 
-                if (diffMeses < 0) return { fecha: fecha.toLocaleDateString('es-ES'), clase: 'animate-text-red font-bold' };
+                if (diffMeses < 0) return { fecha: fecha.toLocaleDateString('es-ES'), clase: 'animate-text-red' };
                 if (diffMeses < 2) return { fecha: fecha.toLocaleDateString('es-ES'), clase: 'text-orange-500 font-bold' };
                 return { fecha: fecha.toLocaleDateString('es-ES'), clase: 'text-green-600 font-bold' };
             } catch(e) { return { fecha: 'Error', clase: '' }; }
         }
 
+        function aplicarFiltros() { cargarTabla(); }
+
         async function cargarTabla() {
             const body = document.getElementById('tabla-body');
-            body.innerHTML = '<tr><td colspan="5" class="p-10 text-center italic text-slate-400">Cargando equipos...</td></tr>';
+            body.innerHTML = '<tr><td colspan="5" class="p-10 text-center"><i class="fa-solid fa-sync fa-spin text-blue-500 text-2xl"></i></td></tr>';
             
-            let query = client.from('equipos').select('*');
             const f_gen = document.getElementById('f_general').value;
             const f_gfh = document.getElementById('f_gfh').value;
-            
+
+            // TABLA 'equipos' según tu captura de pantalla
+            let query = client.from('equipos').select('*');
             if(f_gen) query = query.or(`Código.ilike.%${f_gen}%,Nombre.ilike.%${f_gen}%`);
             if(f_gfh) query = query.ilike('GFH', `%${f_gfh}%`);
 
-            const { data } = await query.limit(100);
+            const { data, error } = await query.limit(100);
+            
+            if(error) {
+                body.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500 font-bold">Error: Activa las Policies (RLS) en Supabase</td></tr>`;
+                return;
+            }
+
             body.innerHTML = data.map(item => {
                 const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
                 return `
-                <tr class="hover:bg-white transition-colors group">
-                    <td class="p-4 font-bold text-slate-700">${item.Nombre}<br><span class="text-[10px] font-mono text-blue-500">${item.Código}</span></td>
-                    <td class="p-4 text-slate-500">${item.GFH || '-'}</td>
-                    <td class="p-4 text-xs font-mono text-slate-400">${item['Fecha cal.'] || '-'}</td>
+                <tr class="hover:bg-blue-50/40 transition-all group">
+                    <td class="p-4">
+                        <div class="font-bold text-slate-800">${item.Nombre}</div>
+                        <div class="text-[10px] font-mono text-blue-500">${item.Código}</div>
+                    </td>
+                    <td class="p-4 text-sm text-slate-500 font-medium">${item.GFH || '-'}</td>
+                    <td class="p-4 text-xs text-slate-400 font-mono text-center">${item['Fecha cal.'] || '-'}</td>
                     <td class="p-4 text-sm"><span class="${prox.clase}">${prox.fecha}</span></td>
                     <td class="p-4 text-center">
-                        <button onclick='openEdit(${JSON.stringify(item)})' class="text-slate-300 hover:text-blue-600 p-2 rounded-lg transition-colors"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick='openEdit(${JSON.stringify(item)})' class="text-slate-300 hover:text-blue-600 p-2 rounded-xl hover:bg-blue-100 transition-all">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
                     </td>
                 </tr>`;
             }).join('');
@@ -171,8 +194,6 @@
         function openEdit(item) {
             document.getElementById('edit-id').value = item.Código;
             document.getElementById('edit-fecha').value = item['Fecha cal.'] || '';
-            
-            // Lógica inversa para el desplegable (Si son 24 meses, pone 2 y marca "Años")
             const p = item.periodicidad || 12;
             if (p % 12 === 0) {
                 document.getElementById('peri-valor').value = p / 12;
@@ -186,30 +207,28 @@
 
         async function guardarCambios() {
             const id = document.getElementById('edit-id').value;
-            const fecha = document.getElementById('edit-fecha').value;
-            const valor = document.getElementById('peri-valor').value;
-            const unidad = document.getElementById('peri-unidad').value;
-            
-            // Convertimos todo a meses para la base de datos
-            const mesesTotales = valor * unidad;
+            const f = document.getElementById('edit-fecha').value;
+            const v = document.getElementById('peri-valor').value;
+            const u = document.getElementById('peri-unidad').value;
+            const meses = parseInt(v) * parseInt(u);
 
-            const { error } = await client.from('equipos')
-                .update({ 'Fecha cal.': fecha, 'periodicidad': mesesTotales })
-                .eq('Código', id);
+            const { error } = await client.from('equipos').update({ 
+                'Fecha cal.': f, 
+                'periodicidad': meses 
+            }).eq('Código', id);
 
-            if(!error) { closeEdit(); cargarTabla(); }
-            else alert(error.message);
+            if(error) alert(error.message); 
+            else { closeEdit(); aplicarFiltros(); }
         }
 
         function showSection(id) {
             document.getElementById('sec-inventario').classList.toggle('hidden', id !== 'inventario');
             document.getElementById('sec-calendario').classList.toggle('hidden', id !== 'calendario');
-            if(id === 'calendario') initCalendar();
         }
 
         function closeEdit() { document.getElementById('modal-edit').classList.add('hidden'); }
         async function logout() { await client.auth.signOut(); location.href='index.html'; }
-        
+
         checkUser();
         cargarTabla();
     </script>
