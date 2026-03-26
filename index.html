@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -33,7 +33,14 @@
         const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo';
         
         const client = supabase.createClient(_URL, _KEY);
-
+        async function resetPassword() {
+            const email = prompt("Introduce tu correo:");
+            const { error } = await client.auth.resetPasswordForEmail(email, {
+                redirectTo: 'https://tu-web.vercel.app/update-password.html',
+            });
+            if (error) alert(error.message);
+            else alert("Link enviado a tu correo.");
+}
         async function handleLogin() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
