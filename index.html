@@ -22,40 +22,39 @@
             </div>
             
             <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">Entrar</button>
-            
-            <button onclick="handleSignUp()" class="w-full border border-blue-600 text-blue-600 py-3 rounded-lg font-semibold hover:bg-blue-50 transition">Dar de alta nuevo usuario</button>
         </div>
 
         <p id="msg" class="mt-4 text-center text-sm font-medium"></p>
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo'; // <--- PEGA TU CLAVE COMPLETA AQUÍ
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        async function handleSignUp() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const { error } = await supabase.auth.signUp({ email, password });
-            
-            if (error) {
-                showMsg(error.message, 'text-red-600');
-            } else {
-                showMsg('Usuario registrado correctamente. Ya puedes entrar.', 'text-green-600');
-            }
-        }
+        // Hemos cambiado el nombre de la variable a 'client' para que no choque con la librería
+        const _URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
+        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo';
+        
+        const client = supabase.createClient(_URL, _KEY);
 
         async function handleLogin() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            const msg = document.getElementById('msg');
+            
+            msg.innerText = "Verificando...";
+            msg.className = "mt-4 text-center text-sm font-medium text-blue-600";
+
+            const { data, error } = await client.auth.signInWithPassword({ 
+                email: email, 
+                password: password 
+            });
             
             if (error) {
-                showMsg(error.message, 'text-red-600');
+                showMsg("Error: " + error.message, 'text-red-600');
             } else {
-                showMsg('¡Entrando al sistema...', 'text-green-600');
-                // Aquí podrías redirigir a la página de la tabla de equipos
+                showMsg('¡Acceso correcto! Entrando...', 'text-green-600');
+                // Cuando funcione, aquí pondremos la redirección al dashboard
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
             }
         }
 
