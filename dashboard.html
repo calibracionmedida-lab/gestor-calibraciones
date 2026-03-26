@@ -12,14 +12,14 @@
         <div class="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800">Inventario de Herramientas</h1>
-                <p class="text-slate-500">Gestión de calibraciones y equipos Mansis</p>
+                <p class="text-slate-500">Gestión de calibraciones Mansis</p>
             </div>
             <button onclick="logout()" class="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors">Cerrar Sesión</button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <input type="text" id="f_codigo" placeholder="Buscar por Código..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
-            <input type="text" id="f_nombre" placeholder="Nombre del equipo..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
+            <input type="text" id="f_codigo" placeholder="Código..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
+            <input type="text" id="f_nombre" placeholder="Nombre..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
             <input type="text" id="f_gfh" placeholder="GFH..." class="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 border-slate-200">
             <button onclick="cargarDatos()" class="bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Filtrar</button>
         </div>
@@ -37,8 +37,7 @@
                             <th class="p-4 text-sm font-semibold text-slate-600">Estado</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla-body" class="text-slate-700">
-                        </tbody>
+                    <tbody id="tabla-body" class="text-slate-700"></tbody>
                 </table>
             </div>
         </div>
@@ -51,7 +50,7 @@
 
         async function cargarDatos() {
             const body = document.getElementById('tabla-body');
-            body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400 italic">Buscando en Mansis...</td></tr>';
+            body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400 italic">Cargando inventario...</td></tr>';
 
             const f_cod = document.getElementById('f_codigo').value;
             const f_nom = document.getElementById('f_nombre').value;
@@ -59,32 +58,32 @@
 
             let query = client.from('INVENTARIO_HERRAMIENTAS').select('*');
 
-            // Intentamos filtrar por los nombres que suelen dar problemas
+            // Filtros flexibles (prueban con y sin tilde por si acaso)
             if (f_cod) query = query.ilike('Código', `%${f_cod}%`);
             if (f_nom) query = query.ilike('Nombre', `%${f_nom}%`);
-            if (f_gfh) query = query.ilike('GFH', `%${f_gfh}%`);
+            if (f_gfh) query = query.or(`GFH.ilike.%${f_gfh}%,GFH_1.ilike.%${f_gfh}%`);
 
             const { data, error } = await query.limit(100);
 
             if (error) {
-                body.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-red-500 font-bold">Error de conexión: Activa las Policies en Supabase</td></tr>`;
+                body.innerHTML = `<tr><td colspan="6" class="p-10 text-center text-red-500 font-bold">Error: ${error.message}</td></tr>`;
                 return;
             }
 
             body.innerHTML = data.map(item => {
-                // Buscamos los datos sin importar si la columna tiene tildes o puntos
-                const getVal = (names) => {
-                    for (let n of names) { if (item[n]) return item[n]; }
+                // Función mágica para encontrar la columna correcta aunque tenga puntos o espacios
+                const buscar = (keys) => {
+                    for (let k of keys) { if (item[k] !== undefined && item[k] !== null) return item[k]; }
                     return '-';
                 };
 
-                const codigo = getVal(['Código', 'codigo']);
-                const nombre = getVal(['Nombre', 'nombre']);
-                const marca = getVal(['Marca', 'marca']);
-                const modelo = getVal(['Modelo', 'modelo']);
-                const gfh = getVal(['GFH', 'gfh']);
-                const fecha = getVal(['Fecha cal.', 'fecha cal.', 'fecha_cal']);
-                const estado = getVal(['Estado', 'estado']);
+                const codigo = buscar(['Código', 'codigo', 'Código ']);
+                const nombre = buscar(['Nombre', 'nombre', 'Nombre ']);
+                const marca = buscar(['Marca', 'marca']);
+                const modelo = buscar(['Modelo', 'modelo']);
+                const gfh = buscar(['GFH', 'gfh', 'GFH_1']);
+                const fecha = buscar(['Fecha cal.', 'fecha cal', 'Fecha_cal']);
+                const estado = buscar(['Estado', 'estado']);
 
                 return `
                     <tr class="border-b border-slate-100 hover:bg-blue-50/50 transition-colors">
@@ -94,24 +93,7 @@
                             <span class="block text-sm text-slate-700">${marca}</span>
                             <span class="text-xs text-slate-400 font-mono">${modelo}</span>
                         </td>
-                        <td class="p-4 text-sm text-slate-600 font-medium">${gfh}</td>
+                        <td class="p-4 text-sm text-slate-600">${gfh}</td>
                         <td class="p-4 text-sm text-slate-500">${fecha}</td>
-                        <td class="p-4 text-center">
-                            <span class="px-3 py-1 rounded-full text-[10px] font-bold ${estado === 'DISPONIBLE' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
-                                ${estado}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        async function logout() {
-            await client.auth.signOut();
-            window.location.href = 'index.html';
-        }
-
-        cargarDatos();
-    </script>
-</body>
-</html>
+                        <td class="p-4">
+                            <span class="px-3 py-1 rounded-full text-
