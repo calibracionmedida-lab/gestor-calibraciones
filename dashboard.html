@@ -127,7 +127,25 @@
         const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo'; 
         const client = supabase.createClient(_URL, _KEY);
         let calendar;
+// FUNCIÓN TEMPORAL PARA FORZAR TU ROL (Borrar una vez funcione)
+async function forzarMiRolAdmin() {
+    const { data: { user } } = await client.auth.getUser();
+    if (user && user.email === 'r.almela@es.polygon.eu') {
+        const { error } = await client.auth.updateUser({
+            data: { role: 'admin' }
+        });
+        if (!error) {
+            console.log("¡Rol de Admin asignado con éxito!");
+            // Recargamos para que el menú aparezca
+            checkUser(); 
+        } else {
+            console.error("Error al asignar rol:", error.message);
+        }
+    }
+}
 
+// Llama a la función al cargar la página
+forzarMiRolAdmin();
         async function checkUser() {
             const { data: { user } } = await client.auth.getUser();
             if(!user) window.location.href = 'index.html';
