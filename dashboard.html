@@ -22,7 +22,7 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
         /* Para ocultar elementos según rol */
-        .hidden { display: none !important; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
         /* Animación de entrada para el modal lateral */
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
     </style>
