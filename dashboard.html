@@ -74,7 +74,10 @@
                     <option value="TS-L17">TS-L17</option>
                 </select>
             </div>
-            
+            <label class="flex items-center gap-2 cursor-pointer select-none h-10 px-4 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all">
+                <input type="checkbox" id="f_calibracion" onchange="aplicarFiltros()" class="w-4 h-4 accent-blue-600 cursor-pointer">
+                Solo con calibración
+            </label>
             <div class="flex items-end pb-1">
                 <button id="btn-alertas" onclick="toggleAlertas()" class="h-10 px-5 rounded-xl border border-red-200 text-red-600 font-bold text-xs hover:bg-red-50 transition-all flex items-center gap-2 group shadow-sm active:scale-95">
                     <i class="fa-solid fa-triangle-exclamation group-hover:animate-ping"></i> REQUIEREN CALIBRACIÓN
@@ -262,16 +265,18 @@
             const f_gfh = document.getElementById('f_gfh').value;
 
             // Filtramos los datos en memoria (rápido)
-            const filtrados = listadoEquipos.filter(item => {
-                const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
-                
-                // Lógica de filtros (coincidencia de búsqueda, centro y alerta)
-                const coincideBusqueda = item.Nombre.toLowerCase().includes(f_gen) || item.Código.toLowerCase().includes(f_gen);
-                const coincideCentro = !f_gfh || item.GFH === f_gfh;
-                const coincideAlerta = !filtroAlertas || prox.caducado; // Filtro de Requieren Calibración
+const filtrados = listadoEquipos.filter(item => {
+    const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
+    
+    const f_cal = document.getElementById('f_calibracion').checked;
 
-                return coincideBusqueda && coincideCentro && coincideAlerta;
-            });
+    const coincideBusqueda = !f_gen || item.Nombre.toLowerCase().includes(f_gen) || item.Código.toLowerCase().includes(f_gen);
+    const coincideCentro = !f_gfh || (item.GFH && item.GFH.includes(f_gfh));
+    const coincideAlerta = !filtroAlertas || prox.caducado;
+    const coincideCalib = !f_cal || item.calibracion === 'Sí';
+
+    return coincideBusqueda && coincideCentro && coincideAlerta && coincideCalib;
+});
 
             // Renderizamos la tabla
             if(filtrados.length === 0) {
