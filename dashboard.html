@@ -320,32 +320,29 @@ const filtrados = listadoEquipos.filter(item => {
                 },
                 themeSystem: 'standard',
                 events: async (info, success, failure) => {
-                    // Cargamos los datos para el calendario
-                    const { data } = await client.from('equipos').select('*');
-                    
-                    const eventos = data.map(item => {
-                        const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
-                        if (!prox.obj) return null; // Si no tiene fecha, no se muestra
+    const { data } = await client.from('equipos').select('*');
+    
+    const eventos = data
+        .filter(item => item['Equipos con calibración'] === 'Sí')
+        .map(item => {
+            const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
+            if (!prox.obj) return null;
 
-                        // Convertimos a formato ISO YYYY-MM-DD para FullCalendar
-                        // Usamos UTC para evitar desfases de zona horaria al formatear
-                        const isoDate = prox.obj.toISOString().split('T')[0];
+            const isoDate = prox.obj.toISOString().split('T')[0];
 
-                        return {
-                            title: item.Nombre + " (" + item.Código + ")",
-                            start: isoDate,
-                            color: prox.caducado ? '#ef4444' : '#10b981', // Rojo si caducado, verde si no
-                            extendedProps: { codigo: item.Código, centro: item.GFH }
-                        };
-                    }).filter(e => e !== null);
+            return {
+                title: item.Nombre + " (" + item.Código + ")",
+                start: isoDate,
+                color: prox.caducado ? '#ef4444' : '#10b981',
+                extendedProps: { codigo: item.Código, centro: item.GFH }
+            };
+        }).filter(e => e !== null);
 
-                    success(eventos);
-                },
-                eventClick: (info) => {
-                    alert("Equipo: " + info.event.title + "\nCódigo: " + info.event.extendedProps.codigo + "\nCentro: " + info.event.extendedProps.centro);
-                }
-            });
-
+    success(eventos);
+},
+eventClick: (info) => {
+    alert("Equipo: " + info.event.title + "\nCódigo: " + info.event.extendedProps.codigo + "\nCentro: " + info.event.extendedProps.centro);
+}
             calendar.render();
         }
 
