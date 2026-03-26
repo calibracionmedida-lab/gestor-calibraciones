@@ -25,7 +25,7 @@
                 <i class="fa-solid fa-users-gear w-5"></i> Ajustes / Admin
             </button>
         </nav>
-        <button onclick="logout()" class="p-6 text-slate-400 hover:text-white text-left border-t border-slate-800">
+        <button onclick="logout()" class="p-6 text-slate-400 hover:text-red-400 text-left border-t border-slate-800 transition-colors">
             <i class="fa-solid fa-power-off mr-2"></i> Cerrar Sesión
         </button>
     </aside>
@@ -35,11 +35,11 @@
         <div class="bg-white p-4 border-b border-slate-200 shadow-sm flex gap-4 items-end z-10">
             <div class="flex-1">
                 <label class="block text-xs font-bold text-slate-500 mb-1">Buscar Equipo</label>
-                <input type="text" id="f_general" oninput="aplicarFiltros()" placeholder="Código o Nombre..." class="w-full p-2 border rounded-lg bg-slate-50">
+                <input type="text" id="f_general" oninput="aplicarFiltros()" placeholder="Código o Nombre..." class="w-full p-2 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div class="w-48">
                 <label class="block text-xs font-bold text-slate-500 mb-1">Centro (GFH)</label>
-                <select id="f_gfh" onchange="aplicarFiltros()" class="w-full p-2 border rounded-lg bg-slate-50 cursor-pointer">
+                <select id="f_gfh" onchange="aplicarFiltros()" class="w-full p-2 border rounded-lg bg-slate-50 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">Todos los centros</option>
                     <option value="TS-L5">TS-L5 (Clínico)</option>
                     <option value="TS-L7">TS-L7 (La Fe)</option>
@@ -47,27 +47,29 @@
                     <option value="TS-L17">TS-L17 (Orihuela)</option>
                     <option value="TS001">TS001 (Oficina)</option>
                     <option value="TS-DI">TS-DI (Oficina DI)</option>
-                    <option value="TS-HGV">TS-HGV (Hospital General)</option>
                 </select>
             </div>
             <div class="w-48">
-                <label class="flex items-center gap-2 p-2 border rounded-lg bg-slate-50 cursor-pointer hover:bg-slate-100">
-                    <input type="checkbox" id="f_solo_calib" onchange="aplicarFiltros()" class="w-4 h-4">
+                <label class="flex items-center gap-2 p-2 border rounded-lg bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors h-[42px]">
+                    <input type="checkbox" id="f_solo_calib" onchange="aplicarFiltros()" class="w-4 h-4 text-blue-600">
                     <span class="text-sm font-semibold text-slate-700">Solo Calibrables</span>
                 </label>
             </div>
         </div>
 
         <div class="flex-1 overflow-y-auto p-6">
+            
             <section id="sec-inventario">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50 border-b">
                             <tr>
                                 <th class="p-4 text-xs font-bold text-slate-500 uppercase">Equipo</th>
-                                <th class="p-4 text-xs font-bold text-slate-500 uppercase">GFH</th>
-                                <th class="p-4 text-xs font-bold text-slate-500 uppercase">Última Calibración</th>
+                                <th class="p-4 text-xs font-bold text-slate-500 uppercase">Ubicación</th>
+                                <th class="p-4 text-xs font-bold text-slate-500 uppercase">Últ. Cal.</th>
+                                <th class="p-4 text-xs font-bold text-slate-500 uppercase">Próx. Revisión</th>
                                 <th class="p-4 text-xs font-bold text-slate-500 uppercase">Estado</th>
+                                <th class="p-4 text-xs font-bold text-slate-500 uppercase text-center"><i class="fa-solid fa-gear"></i></th>
                             </tr>
                         </thead>
                         <tbody id="tabla-body" class="divide-y divide-slate-100"></tbody>
@@ -81,11 +83,68 @@
         </div>
     </main>
 
+    <div id="modal-edit" class="fixed inset-0 bg-slate-900/50 hidden z-50 flex justify-end backdrop-blur-sm transition-all">
+        <div class="bg-white w-full max-w-md h-full p-8 shadow-2xl overflow-y-auto animate-[slideIn_0.3s_ease-out]">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800">Editar Equipo</h3>
+                <button onclick="closeEdit()" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-2xl"></i></button>
+            </div>
+            <form class="space-y-5">
+                <input type="hidden" id="edit-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Nombre y Código</label>
+                    <input type="text" id="edit-nombre" class="w-full p-3 border rounded-xl bg-slate-50 font-medium" readonly>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Última Fecha Calibración</label>
+                    <input type="text" id="edit-fecha" placeholder="DD/MM/YYYY" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="text-[10px] text-slate-400 mt-1">El sistema calculará automáticamente +1 año para la próxima revisión.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Estado</label>
+                    <select id="edit-estado" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="DISPONIBLE">DISPONIBLE</option>
+                        <option value="EN REPARACIÓN">EN REPARACIÓN</option>
+                        <option value="BAJA">BAJA</option>
+                    </select>
+                </div>
+                <button type="button" onclick="guardarCambios()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all mt-6">
+                    Guardar Cambios
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+
     <script>
         const _URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
-        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo'; // PON TU CLAVE AQUÍ
+        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo'; // ¡RECUERDA PONER TU CLAVE!
         const client = supabase.createClient(_URL, _KEY);
         let calendar;
+
+        // Función para calcular colores y fechas
+        function calcularProxima(fechaStr) {
+            if (!fechaStr || fechaStr === '-') return { fecha: 'Sin registro', clase: 'text-slate-400' };
+            try {
+                const partes = fechaStr.split('/');
+                if (partes.length !== 3) throw new Error();
+                
+                const fecha = new Date(partes[2], partes[1] - 1, partes[0]);
+                fecha.setFullYear(fecha.getFullYear() + 1); // +1 año de caducidad
+                
+                const hoy = new Date();
+                const diffMeses = (fecha - hoy) / (1000 * 60 * 60 * 24 * 30);
+                
+                let clase = 'text-green-600 font-bold';
+                if (diffMeses < 0) clase = 'text-red-600 font-bold animate-pulse'; // Caducado
+                else if (diffMeses < 2) clase = 'text-orange-500 font-bold'; // < 2 meses
+
+                return { fecha: fecha.toLocaleDateString('es-ES'), clase: clase };
+            } catch(e) { return { fecha: 'Error formato', clase: 'text-red-300' }; }
+        }
 
         function showSection(id) {
             document.getElementById('sec-inventario').classList.add('hidden');
@@ -96,7 +155,7 @@
 
         function aplicarFiltros() {
             cargarTabla();
-            if(calendar) calendar.refetchEvents(); // Recarga el calendario con los nuevos filtros
+            if(calendar) calendar.refetchEvents();
         }
 
         function buildQuery() {
@@ -108,27 +167,51 @@
             if (f_gen) query = query.or(`Código.ilike.%${f_gen}%,Nombre.ilike.%${f_gen}%`);
             if (f_gfh) query = query.ilike('GFH', `%${f_gfh}%`);
             if (soloCalib) query = query.eq('Equipos con calibración', 'Sí');
-            
             return query;
         }
 
         async function cargarTabla() {
             const body = document.getElementById('tabla-body');
-            body.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>';
+            body.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><br>Cargando...</td></tr>';
             
             const { data, error } = await buildQuery().limit(100);
-            if (error) return body.innerHTML = `<tr><td colspan="4" class="text-red-500">${error.message}</td></tr>`;
+            if (error) return body.innerHTML = `<tr><td colspan="6" class="text-red-500 p-4">${error.message}</td></tr>`;
 
-            body.innerHTML = data.map(item => `
-                <tr class="hover:bg-slate-50 transition-colors text-sm">
-                    <td class="p-4 font-medium">${item.Nombre || '-'} <br><span class="text-[10px] text-blue-500 font-mono">${item.Código || '-'}</span></td>
-                    <td class="p-4 text-slate-600">${item.GFH || '-'}</td>
-                    <td class="p-4 font-mono text-slate-500">${item['Fecha cal.'] || '-'}</td>
-                    <td class="p-4"><span class="px-2 py-1 bg-slate-100 rounded text-[10px] font-bold">${item.Estado || 'S/D'}</span></td>
+            body.innerHTML = data.map(item => {
+                const prox = calcularProxima(item['Fecha cal.']);
+                const estado = item.Estado || 'S/D';
+                // Usamos un identificador único (id) o el Código si no tienes id autoincremental
+                const identificador = item.id || item.Código; 
+
+                return `
+                <tr class="hover:bg-blue-50/50 transition-all duration-300 group">
+                    <td class="p-4">
+                        <div class="font-bold text-slate-800">${item.Nombre || '-'}</div>
+                        <div class="text-[10px] font-mono text-blue-500">${item.Código || '-'}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="text-sm text-slate-600 font-medium">${item.GFH || '-'}</div>
+                        <div class="text-[10px] text-slate-400 uppercase italic">${item.Marca || ''} ${item.Modelo || ''}</div>
+                    </td>
+                    <td class="p-4 text-sm text-slate-500">${item['Fecha cal.'] || '-'}</td>
+                    <td class="p-4 text-sm ${prox.clase}">
+                        <i class="fa-regular fa-calendar-check mr-1 text-xs opacity-70"></i> ${prox.fecha}
+                    </td>
+                    <td class="p-4">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-black tracking-widest ${estado === 'DISPONIBLE' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                            ${estado}
+                        </span>
+                    </td>
+                    <td class="p-4 text-center">
+                        <button onclick='openEdit(${JSON.stringify(item).replace(/'/g, "&#39;")})' class="text-slate-300 group-hover:text-blue-600 hover:bg-blue-100 p-2 rounded-lg transition-colors">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                    </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
+        // CALENDARIO
         function initCalendar() {
             const calEl = document.getElementById('calendar-container');
             if(calendar) calendar.destroy();
@@ -138,15 +221,19 @@
                 locale: 'es',
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
                 events: async function(info, success, failure) {
-                    // Usamos la misma query de los filtros, pero filtramos los que no tienen fecha
                     const { data } = await buildQuery().not('"Fecha cal."', 'is', null);
                     
                     const evts = data.filter(e => e['Fecha cal.'] && e['Fecha cal.'] !== '-').map(e => {
                         const p = e['Fecha cal.'].split('/');
                         if(p.length === 3) {
                             const fechaBase = new Date(p[2], p[1]-1, p[0]);
-                            fechaBase.setFullYear(fechaBase.getFullYear() + 1); // +1 Año
-                            return { title: e.Nombre, start: fechaBase.toISOString().split('T')[0], color: '#ef4444' };
+                            fechaBase.setFullYear(fechaBase.getFullYear() + 1);
+                            
+                            // Color según si está caducado o no
+                            const hoy = new Date();
+                            const colorEvent = (fechaBase < hoy) ? '#ef4444' : '#f59e0b';
+
+                            return { title: e.Código + ' - ' + e.Nombre, start: fechaBase.toISOString().split('T')[0], color: colorEvent };
                         }
                         return null;
                     }).filter(e => e !== null);
@@ -157,8 +244,11 @@
             calendar.render();
         }
 
-        async function logout() { await client.auth.signOut(); location.href='index.html'; }
-        cargarTabla();
-    </script>
-</body>
-</html>
+        // LÓGICA DE EDICIÓN
+        function openEdit(item) {
+            // Asumimos que la columna 'Código' es tu identificador único si no tienes 'id'
+            document.getElementById('edit-id').value = item.id || item.Código; 
+            document.getElementById('edit-nombre').value = item.Código + ' - ' + item.Nombre;
+            document.getElementById('edit-fecha').value = item['Fecha cal.'] || '';
+            document.getElementById('edit-estado').value = item.Estado || 'DISPONIBLE';
+            document.getElementById('modal-edit').classList.
