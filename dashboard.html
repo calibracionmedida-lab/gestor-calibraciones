@@ -2,188 +2,296 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Mansis Lab - Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mansis Lab - Dashboard Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    
     <style>
-        /* Animación de latido solo en el color del texto */
-        @keyframes pulse-text {
+        /* Animación de latido solo en el color del texto (caducados) */
+        @keyframes heartbeat-text {
             0%, 100% { color: #dc2626; transform: scale(1); }
             50% { color: #f87171; transform: scale(1.05); }
         }
         .animate-text-red { 
             display: inline-block;
-            animation: pulse-text 1.5s infinite; 
+            animation: heartbeat-text 1.2s infinite; 
             font-weight: 900;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
+        /* Para ocultar elementos según rol */
         .hidden { display: none !important; }
+        /* Animación de entrada para el modal lateral */
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex">
+<body class="bg-slate-100 min-h-screen flex antialiased text-slate-700">
 
     <aside class="w-64 bg-slate-900 text-white flex flex-col sticky top-0 h-screen z-20 shadow-xl">
         <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-            <div class="bg-blue-600 p-2 rounded-lg"><i class="fa-solid fa-microchip text-white"></i></div>
-            <h1 class="text-xl font-bold text-blue-400 font-mono tracking-tighter">Mansis Lab</h1>
+            <div class="bg-blue-600 p-2.5 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/50">
+                <i class="fa-solid fa-microchip text-white text-xl"></i>
+            </div>
+            <h1 class="text-2xl font-black text-blue-400 font-mono tracking-tighter">Mansis Lab</h1>
         </div>
         <nav class="flex-1 p-4 space-y-2">
-            <button onclick="showSection('inventario')" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 transition-all flex items-center gap-3 active:scale-95">
-                <i class="fa-solid fa-list w-5 text-blue-400"></i> Inventario
+            <button onclick="showSection('inventario')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/60 transition-all flex items-center gap-3 active:scale-95 group">
+                <i class="fa-solid fa-list w-6 text-center text-blue-400 group-hover:scale-110 transition-transform"></i> Inventario
             </button>
-            <button onclick="showSection('calendario')" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 transition-all flex items-center gap-3 active:scale-95">
-                <i class="fa-solid fa-calendar-days w-5 text-blue-400"></i> Calendario
+            <button onclick="showSection('calendario')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/60 transition-all flex items-center gap-3 active:scale-95 group">
+                <i class="fa-solid fa-calendar-days w-6 text-center text-blue-400 group-hover:scale-110 transition-transform"></i> Calendario
             </button>
-            <div id="menu-admin" class="hidden border-t border-slate-800 mt-4 pt-4 space-y-2">
+            
+            <div id="menu-admin" class="hidden border-t border-slate-800 mt-5 pt-5 space-y-2">
                 <p class="text-[10px] font-black text-slate-500 uppercase px-3 mb-2 tracking-widest">Administración</p>
-                <button onclick="location.href='settings.html'" class="w-full text-left p-3 rounded-xl hover:bg-slate-800 transition-all flex items-center gap-3">
-                    <i class="fa-solid fa-users-gear w-5 text-slate-400"></i> Usuarios y SMTP
+                <button onclick="location.href='settings.html'" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800 flex items-center gap-3 transition-colors text-slate-300">
+                    <i class="fa-solid fa-users-gear w-6 text-center text-slate-400"></i> Ajustes y SMTP
                 </button>
             </div>
         </nav>
-        <button onclick="logout()" class="p-6 text-slate-400 hover:text-red-400 text-left border-t border-slate-800 transition-colors">
-            <i class="fa-solid fa-power-off mr-2"></i> Salir
+        <button onclick="logout()" class="p-6 text-slate-400 hover:text-red-400 border-t border-slate-800 transition-colors flex items-center gap-3 text-sm">
+            <i class="fa-solid fa-power-off"></i> Cerrar Sesión
         </button>
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
-        <div class="bg-white p-4 border-b border-slate-200 shadow-sm flex gap-4 items-end z-10">
+        
+        <div class="bg-white p-4 border-b border-slate-200 shadow-sm flex gap-4 items-end z-10 sticky top-0">
             <div class="flex-1">
-                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">Buscador</label>
-                <input type="text" id="f_general" oninput="aplicarFiltros()" placeholder="Nombre o Código..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Buscador Inteligente</label>
+                <input type="text" id="f_general" oninput="aplicarFiltros()" placeholder="Nombre, Código o GFH..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-300">
             </div>
+            
             <div class="w-56">
-                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1">Centro (GFH)</label>
-                <select id="f_gfh" onchange="aplicarFiltros()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none cursor-pointer">
-                    <option value="">TODOS LOS CENTROS</option>
+                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Filtrar por Centro</label>
+                <select id="f_gfh" onchange="aplicarFiltros()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none cursor-pointer font-medium text-sm">
+                    <option value="">TODOS</option>
                     <option value="TS-L5">TS-L5</option>
                     <option value="TS-L7">TS-L7</option>
-                    <option value="TS-L15">TS-L15</option>
                     <option value="TS-L17">TS-L17</option>
-                    <option value="TS001">TS001</option>
                 </select>
+            </div>
+            
+            <div class="flex items-end pb-1">
+                <button id="btn-alertas" onclick="toggleAlertas()" class="h-10 px-5 rounded-xl border border-red-200 text-red-600 font-bold text-xs hover:bg-red-50 transition-all flex items-center gap-2 group shadow-sm active:scale-95">
+                    <i class="fa-solid fa-triangle-exclamation group-hover:animate-ping"></i> REQUIEREN CALIBRACIÓN
+                </button>
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-6">
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            
             <section id="sec-inventario">
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200">
-                                <th class="p-4 text-[10px] font-black text-slate-400 uppercase">Equipo / Código</th>
-                                <th class="p-4 text-[10px] font-black text-slate-400 uppercase">Ubicación</th>
-                                <th class="p-4 text-[10px] font-black text-slate-400 uppercase text-center">Última Cal.</th>
-                                <th class="p-4 text-[10px] font-black text-slate-400 uppercase">Próxima Revisión</th>
-                                <th class="p-4 text-[10px] font-black text-slate-400 uppercase text-center">Editar</th>
+                <div class="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
+                    <table class="w-full text-left border-collapse table-auto">
+                        <thead class="bg-slate-50 border-b border-slate-100">
+                            <tr>
+                                <th class="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Equipo / Código</th>
+                                <th class="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Ubicación / GFH</th>
+                                <th class="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider text-center">Última Calibración</th>
+                                <th class="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider">Próxima Revisión</th>
+                                <th class="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider text-center">Ajustes</th>
                             </tr>
                         </thead>
-                        <tbody id="tabla-body" class="divide-y divide-slate-100"></tbody>
+                        <tbody id="tabla-body" class="divide-y divide-slate-100 text-sm">
+                            </tbody>
                     </table>
                 </div>
             </section>
 
-            <section id="sec-calendario" class="hidden h-full">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-full" id="calendar-container"></div>
+            <section id="sec-calendario" class="hidden h-[85vh]">
+                <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 h-full">
+                    <div id="calendar-container" class="h-full"></div>
+                </div>
             </section>
         </div>
     </main>
 
     <div id="modal-edit" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex justify-end backdrop-blur-sm">
         <div class="bg-white w-full max-w-md h-full p-8 shadow-2xl animate-[slideIn_0.3s_ease-out] flex flex-col">
-            <div class="flex justify-between items-center mb-8">
-                <h3 class="text-2xl font-bold text-slate-800">Ajustar Equipo</h3>
-                <button onclick="closeEdit()" class="text-slate-400 hover:text-red-500 transition-colors"><i class="fa-solid fa-circle-xmark text-3xl"></i></button>
+            <div class="flex justify-between items-center mb-10 border-b border-slate-100 pb-5">
+                <h3 class="text-3xl font-black text-slate-800 tracking-tighter">Ajustar Equipo</h3>
+                <button onclick="closeEdit()" class="text-slate-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-circle-xmark text-3xl"></i></button>
             </div>
-            <form class="space-y-6 flex-1">
+            
+            <form class="space-y-8 flex-1">
                 <input type="hidden" id="edit-id">
+                
                 <div>
-                    <label class="block text-xs font-black text-slate-400 uppercase mb-2">Última Calibración</label>
-                    <input type="text" id="edit-fecha" placeholder="DD/MM/YYYY" class="w-full p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-mono">
+                    <label class="block text-[11px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Última Calibración Registrada</label>
+                    <input type="text" id="edit-fecha" placeholder="DD/MM/YYYY" class="w-full p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-mono text-lg font-bold">
+                    <p class="text-xs text-slate-400 mt-2 italic">* Formato: Día/Mes/Año</p>
                 </div>
                 
                 <div>
-                    <label class="block text-xs font-black text-slate-400 uppercase mb-2">Periodicidad</label>
-                    <div class="flex gap-2">
-                        <input type="number" id="peri-valor" class="w-24 p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-center font-bold">
-                        <select id="peri-unidad" class="flex-1 p-4 border border-slate-200 rounded-2xl bg-white outline-none focus:ring-2 focus:ring-blue-500 font-bold">
+                    <label class="block text-[11px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Periodicidad de Calibración</label>
+                    <div class="flex gap-2.5">
+                        <input type="number" id="peri-valor" value="12" class="w-28 p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg font-black bg-white">
+                        <select id="peri-unidad" class="flex-1 p-4 border border-slate-200 rounded-2xl bg-white outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700">
                             <option value="1">Meses</option>
                             <option value="12">Años</option>
                         </select>
                     </div>
+                    <p class="text-[10px] text-slate-400 mt-3 bg-slate-100 p-3 rounded-xl italic">
+                        * El sistema calculará la próxima fecha sumando este tiempo a la fecha de la última calibración.
+                    </p>
                 </div>
 
-                <button type="button" onclick="guardarCambios()" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all mt-10">
-                    Actualizar y Recalcular
+                <button type="button" onclick="guardarCambios()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all mt-auto active:scale-95">
+                    Guardar Cambios y Recalcular
                 </button>
             </form>
         </div>
     </div>
 
     <script>
+        // CONFIGURACIÓN (Sustituye por tus claves si no son estas)
         const _URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
-        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo'; 
+        const _KEY = 'TU_KEY_ANON_AQUI'; // Asegúrate de que sea la 'anon public key'
         const client = supabase.createClient(_URL, _KEY);
+
         let calendar;
+        let filtroAlertas = false; // Estado del botón Requieren Calibración
+        let listadoEquipos = []; // Caché de datos para filtros rápidos
 
+        // 1. CONTROL DE ROLES Y ACCESO
         async function checkUser() {
-            const { data: { user } } = await client.auth.getUser();
-            if(!user) window.location.href = 'index.html';
-            if(user.user_metadata?.role === 'admin') document.getElementById('menu-admin').classList.remove('hidden');
-        }
-
-        function calcularProxima(fechaStr, mesesTotales = 12) {
-            if (!fechaStr || fechaStr === '-' || fechaStr === 'No') return { fecha: 'Pendiente', clase: 'text-slate-300 italic' };
-            try {
-                const p = fechaStr.split('/');
-                const fecha = new Date(p[2], p[1]-1, p[0]);
-                fecha.setMonth(fecha.getMonth() + parseInt(mesesTotales));
-                
-                const hoy = new Date();
-                const diffMeses = (fecha - hoy) / (1000 * 60 * 60 * 24 * 30);
-                
-                if (diffMeses < 0) return { fecha: fecha.toLocaleDateString('es-ES'), clase: 'animate-text-red' };
-                if (diffMeses < 2) return { fecha: fecha.toLocaleDateString('es-ES'), clase: 'text-orange-500 font-bold' };
-                return { fecha: fecha.toLocaleDateString('es-ES'), clase: 'text-green-600 font-bold' };
-            } catch(e) { return { fecha: 'Error', clase: '' }; }
-        }
-
-        function aplicarFiltros() { cargarTabla(); }
-
-        async function cargarTabla() {
-            const body = document.getElementById('tabla-body');
-            body.innerHTML = '<tr><td colspan="5" class="p-10 text-center"><i class="fa-solid fa-sync fa-spin text-blue-500 text-2xl"></i></td></tr>';
+            const { data: { user }, error } = await client.auth.getUser();
             
-            const f_gen = document.getElementById('f_general').value;
-            const f_gfh = document.getElementById('f_gfh').value;
-
-            // TABLA 'equipos' según tu captura de pantalla
-            let query = client.from('equipos').select('*');
-            if(f_gen) query = query.or(`Código.ilike.%${f_gen}%,Nombre.ilike.%${f_gen}%`);
-            if(f_gfh) query = query.ilike('GFH', `%${f_gfh}%`);
-
-            const { data, error } = await query.limit(100);
-            
-            if(error) {
-                body.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500 font-bold">Error: Activa las Policies (RLS) en Supabase</td></tr>`;
+            if (error || !user) {
+                // Si no hay sesión, al login
+                window.location.href = 'index.html';
                 return;
             }
 
-            body.innerHTML = data.map(item => {
+            // Leemos el rol de los metadatos (robusto)
+            const meta = user.user_metadata || user.raw_user_meta_data || {};
+            const role = meta.role;
+
+            console.log("Sesión iniciada como:", user.email, "| Rol:", role);
+
+            if (role === 'admin') {
+                // Si es admin, mostramos el menú oculto
+                const menuAdmin = document.getElementById('menu-admin');
+                if (menuAdmin) menuAdmin.classList.remove('hidden');
+            }
+        }
+
+        // 2. CÁLCULO DE FECHAS Y ESTADOS (LÓGICA CORE)
+        function calcularProxima(fechaStr, mesesTotales = 12) {
+            // Si no hay fecha o la periodicidad es nula
+            if (!fechaStr || fechaStr === '-' || fechaStr === 'No') {
+                return { fecha: 'Pendiente', clase: 'text-slate-300 italic font-medium', caducado: false };
+            }
+
+            try {
+                // Parseamos DD/MM/YYYY a objeto Date
+                const p = fechaStr.split('/');
+                const fecha = new Date(p[2], p[1]-1, p[0]); // Año, Mes(0-11), Día
+                
+                // Sumamos la periodicidad (en meses)
+                fecha.setMonth(fecha.getMonth() + parseInt(mesesTotales));
+                
+                const hoy = new Date();
+                const diffMeses = (fecha - hoy) / (1000 * 60 * 60 * 24 * 30); // Diferencia aproximada en meses
+                
+                // Determinamos color y animación según cercanía a hoy
+                let clase = 'text-green-600 font-bold'; // Por defecto: En verde
+                let esPasado = false;
+
+                if (fecha < hoy) {
+                    // CADUCADO: Animación de latido en el texto rojo
+                    clase = 'animate-text-red';
+                    esPasado = true;
+                } else if (diffMeses < 2) {
+                    // PRÓXIMO (menos de 2 meses): Naranja
+                    clase = 'text-orange-500 font-bold';
+                }
+
+                return { 
+                    fecha: fecha.toLocaleDateString('es-ES'), // DD/MM/YYYY
+                    clase: clase,
+                    caducado: esPasado,
+                    obj: fecha // Devolvemos el objeto Date para el calendario
+                };
+            } catch(e) { 
+                return { fecha: 'Error Fecha', clase: 'text-red-500 font-bold', caducado: false }; 
+            }
+        }
+
+        // 3. FILTROS Y CARGA DE TABLA
+        function aplicarFiltros() { 
+            cargarTabla(false); // Recargamos la tabla usando la caché
+        }
+
+        function toggleAlertas() {
+            filtroAlertas = !filtroAlertas; // Cambiamos el estado
+            const btn = document.getElementById('btn-alertas');
+            
+            // Actualizamos estilo del botón
+            if(filtroAlertas) {
+                btn.classList.add('bg-red-600', 'text-white');
+                btn.innerHTML = '<i class="fa-solid fa-filter-circle-xmark"></i> QUITAR FILTRO';
+            } else {
+                btn.classList.remove('bg-red-600', 'text-white');
+                btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> REQUIEREN CALIBRACIÓN';
+            }
+            cargarTabla(false); // Recargamos tabla
+        }
+
+        async function cargarTabla(forceRefetch = true) {
+            const body = document.getElementById('tabla-body');
+            
+            // Si necesitamos datos frescos o no hay caché
+            if(forceRefetch || listadoEquipos.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" class="p-10 text-center"><i class="fa-solid fa-sync fa-spin text-blue-500 text-2xl"></i></td></tr>';
+                // TABLA 'equipos'
+                const { data, error } = await client.from('equipos').select('*');
+                if (error) {
+                    body.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-red-600 font-bold bg-red-50">Error al cargar datos: Activa las Policies (RLS) en Supabase.<br>${error.message}</td></tr>`;
+                    return;
+                }
+                listadoEquipos = data; // Guardamos en caché
+            }
+
+            // Obtenemos valores de filtros
+            const f_gen = document.getElementById('f_general').value.toLowerCase();
+            const f_gfh = document.getElementById('f_gfh').value;
+
+            // Filtramos los datos en memoria (rápido)
+            const filtrados = listadoEquipos.filter(item => {
+                const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
+                
+                // Lógica de filtros (coincidencia de búsqueda, centro y alerta)
+                const coincideBusqueda = item.Nombre.toLowerCase().includes(f_gen) || item.Código.toLowerCase().includes(f_gen);
+                const coincideCentro = !f_gfh || item.GFH === f_gfh;
+                const coincideAlerta = !filtroAlertas || prox.caducado; // Filtro de Requieren Calibración
+
+                return coincideBusqueda && coincideCentro && coincideAlerta;
+            });
+
+            // Renderizamos la tabla
+            if(filtrados.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" class="p-10 text-center text-slate-400 italic">No se han encontrado equipos con estos filtros.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = filtrados.map(item => {
+                // Calculamos estado para cada fila
                 const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
                 return `
-                <tr class="hover:bg-blue-50/40 transition-all group">
+                <tr class="hover:bg-blue-50/40 transition-colors group">
                     <td class="p-4">
-                        <div class="font-bold text-slate-800">${item.Nombre}</div>
-                        <div class="text-[10px] font-mono text-blue-500">${item.Código}</div>
+                        <div class="font-bold text-slate-800 text-base">${item.Nombre}</div>
+                        <div class="text-[10px] font-mono text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded inline-block mt-0.5">${item.Código}</div>
                     </td>
-                    <td class="p-4 text-sm text-slate-500 font-medium">${item.GFH || '-'}</td>
-                    <td class="p-4 text-xs text-slate-400 font-mono text-center">${item['Fecha cal.'] || '-'}</td>
+                    <td class="p-4 text-sm text-slate-600 font-medium">${item.GFH || '-'}</td>
+                    <td class="p-4 text-xs font-mono text-slate-400 text-center">${item['Fecha cal.'] || '-'}</td>
                     <td class="p-4 text-sm"><span class="${prox.clase}">${prox.fecha}</span></td>
                     <td class="p-4 text-center">
-                        <button onclick='openEdit(${JSON.stringify(item)})' class="text-slate-300 hover:text-blue-600 p-2 rounded-xl hover:bg-blue-100 transition-all">
+                        <button onclick='openEdit(${JSON.stringify(item)})' class="text-slate-300 hover:text-blue-600 p-2.5 rounded-xl hover:bg-blue-100 transition-all active:scale-95">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
                     </td>
@@ -191,46 +299,130 @@
             }).join('');
         }
 
-        function openEdit(item) {
-            document.getElementById('edit-id').value = item.Código;
-            document.getElementById('edit-fecha').value = item['Fecha cal.'] || '';
-            const p = item.periodicidad || 12;
-            if (p % 12 === 0) {
-                document.getElementById('peri-valor').value = p / 12;
-                document.getElementById('peri-unidad').value = "12";
-            } else {
-                document.getElementById('peri-valor').value = p;
-                document.getElementById('peri-unidad').value = "1";
+        // 4. LÓGICA DEL CALENDARIO (FULLCALENDAR)
+        function initCalendar() {
+            const container = document.getElementById('calendar-container');
+            if (calendar) calendar.destroy(); // Limpiamos si ya existe
+
+            calendar = new FullCalendar.Calendar(container, {
+                initialView: 'dayGridMonth',
+                locale: 'es', // Idioma español
+                firstDay: 1, // Semana empieza en Lunes
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek'
+                },
+                themeSystem: 'standard',
+                events: async (info, success, failure) => {
+                    // Cargamos los datos para el calendario
+                    const { data } = await client.from('equipos').select('*');
+                    
+                    const eventos = data.map(item => {
+                        const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
+                        if (!prox.obj) return null; // Si no tiene fecha, no se muestra
+
+                        // Convertimos a formato ISO YYYY-MM-DD para FullCalendar
+                        // Usamos UTC para evitar desfases de zona horaria al formatear
+                        const isoDate = prox.obj.toISOString().split('T')[0];
+
+                        return {
+                            title: item.Nombre + " (" + item.Código + ")",
+                            start: isoDate,
+                            color: prox.caducado ? '#ef4444' : '#10b981', // Rojo si caducado, verde si no
+                            extendedProps: { codigo: item.Código, centro: item.GFH }
+                        };
+                    }).filter(e => e !== null);
+
+                    success(eventos);
+                },
+                eventClick: (info) => {
+                    alert("Equipo: " + info.event.title + "\nCódigo: " + info.event.extendedProps.codigo + "\nCentro: " + info.event.extendedProps.centro);
+                }
+            });
+
+            calendar.render();
+        }
+
+        // 5. INTERRUPTOR DE SECCIONES (TABS)
+        function showSection(id) {
+            // Ocultamos/Mostramos divs
+            document.getElementById('sec-inventario').classList.toggle('hidden', id !== 'inventario');
+            document.getElementById('sec-calendario').classList.toggle('hidden', id !== 'calendario');
+            
+            if(id === 'calendario') {
+                // Pequeño retardo para dar tiempo a que el div sea visible (FullCalendar lo necesita)
+                setTimeout(() => {
+                    if(!calendar) {
+                        initCalendar();
+                    } else {
+                        calendar.render(); // Refresca el tamaño por si acaso
+                        calendar.refetchEvents(); // Recarga los datos frescos
+                    }
+                }, 100);
             }
+        }
+
+        // 6. LÓGICA DEL MODAL DE EDICIÓN
+        function openEdit(item) {
+            // Rellenamos el formulario
+            document.getElementById('edit-id').value = item.Código; // Usamos Código como ID único
+            document.getElementById('edit-fecha').value = item['Fecha cal.'] || '';
+            
+            // Lógica inversa para la periodicidad inteligente
+            // Si el valor es múltiplo de 12 (años), convertimos
+            const p = item.periodicidad || 12; // 12 meses por defecto
+            if (p % 12 === 0) {
+                document.getElementById('peri-valor').value = p / 12; // Valor en años
+                document.getElementById('peri-unidad').value = "12"; // Unidad Años
+            } else {
+                document.getElementById('peri-valor').value = p; // Valor en meses
+                document.getElementById('peri-unidad').value = "1"; // Unidad Meses
+            }
+            
+            // Mostramos modal
             document.getElementById('modal-edit').classList.remove('hidden');
         }
 
         async function guardarCambios() {
             const id = document.getElementById('edit-id').value;
-            const f = document.getElementById('edit-fecha').value;
-            const v = document.getElementById('peri-valor').value;
-            const u = document.getElementById('peri-unidad').value;
-            const meses = parseInt(v) * parseInt(u);
+            const fecha = document.getElementById('edit-fecha').value;
+            const valor = document.getElementById('peri-valor').value;
+            const unidad = document.getElementById('peri-unidad').value;
+            
+            // Convertimos la periodicidad inteligente a MESES totales para la DB
+            const mesesTotales = parseInt(valor) * parseInt(unidad);
 
-            const { error } = await client.from('equipos').update({ 
-                'Fecha cal.': f, 
-                'periodicidad': meses 
-            }).eq('Código', id);
+            // Guardamos en Supabase (TABLA 'equipos')
+            const { error } = await client.from('equipos')
+                .update({ 
+                    'Fecha cal.': fecha, 
+                    'periodicidad': mesesTotales 
+                })
+                .eq('Código', id); // Asegúrate de que 'Código' sea tu clave primaria/única en DB
 
-            if(error) alert(error.message); 
-            else { closeEdit(); aplicarFiltros(); }
+            if(error) {
+                alert("Error al guardar: " + error.message);
+            } else {
+                closeEdit();
+                cargarTabla(true); // Recargamos datos forzando refresco de caché
+            }
         }
 
-        function showSection(id) {
-            document.getElementById('sec-inventario').classList.toggle('hidden', id !== 'inventario');
-            document.getElementById('sec-calendario').classList.toggle('hidden', id !== 'calendario');
+        function closeEdit() {
+            document.getElementById('modal-edit').classList.add('hidden');
         }
 
-        function closeEdit() { document.getElementById('modal-edit').classList.add('hidden'); }
-        async function logout() { await client.auth.signOut(); location.href='index.html'; }
+        // 7. CERRAR SESIÓN
+        async function logout() {
+            await client.auth.signOut();
+            location.href = 'index.html';
+        }
 
+        // INICIALIZACIÓN
         checkUser();
         cargarTabla();
+
     </script>
 </body>
 </html>
