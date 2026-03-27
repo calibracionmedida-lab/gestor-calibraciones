@@ -53,16 +53,14 @@
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
-        
         <div class="bg-white p-4 border-b border-slate-200 shadow-sm flex gap-4 items-end z-10 sticky top-0">
             <div class="flex-1">
                 <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Buscador Inteligente</label>
-                <input type="text" id="f_general" oninput="aplicarFiltros()" placeholder="Nombre, Código o GFH..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-300">
+                <input type="text" id="f_general" oninput="renderTabla()" placeholder="Nombre, Código o GFH..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-300">
             </div>
-            
             <div class="w-56">
                 <label class="block text-[10px] font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Filtrar por Centro</label>
-                <select id="f_gfh" onchange="aplicarFiltros()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none cursor-pointer font-medium text-sm">
+                <select id="f_gfh" onchange="renderTabla()" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none cursor-pointer font-medium text-sm">
                     <option value="">TODOS</option>
                     <option value="TS-L5">TS-L5</option>
                     <option value="TS-L7">TS-L7</option>
@@ -71,7 +69,7 @@
                 </select>
             </div>
             <label class="flex items-center gap-2 cursor-pointer select-none h-10 px-4 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all">
-                <input type="checkbox" id="f_calibracion" onchange="aplicarFiltros()" class="w-4 h-4 accent-blue-600 cursor-pointer">
+                <input type="checkbox" id="f_calibracion" onchange="renderTabla()" class="w-4 h-4 accent-blue-600 cursor-pointer">
                 Solo con calibración
             </label>
             <div class="flex items-end pb-1">
@@ -82,7 +80,6 @@
         </div>
 
         <div class="flex-1 overflow-y-auto p-6 space-y-6">
-            
             <section id="sec-inventario">
                 <div class="bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
                     <table class="w-full text-left border-collapse table-auto">
@@ -114,16 +111,13 @@
                 <h3 class="text-3xl font-black text-slate-800 tracking-tighter">Ajustar Equipo</h3>
                 <button onclick="closeEdit()" class="text-slate-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-circle-xmark text-3xl"></i></button>
             </div>
-            
             <form class="space-y-8 flex-1">
                 <input type="hidden" id="edit-id">
-                
                 <div>
                     <label class="block text-[11px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Última Calibración Registrada</label>
                     <input type="text" id="edit-fecha" placeholder="DD/MM/YYYY" class="w-full p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-mono text-lg font-bold">
                     <p class="text-xs text-slate-400 mt-2 italic">* Formato: Día/Mes/Año</p>
                 </div>
-                
                 <div>
                     <label class="block text-[11px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Periodicidad de Calibración</label>
                     <div class="flex gap-2.5">
@@ -137,7 +131,6 @@
                         * El sistema calculará la próxima fecha sumando este tiempo a la fecha de la última calibración.
                     </p>
                 </div>
-
                 <button type="button" onclick="guardarCambios()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all mt-auto active:scale-95">
                     Guardar Cambios y Recalcular
                 </button>
@@ -154,26 +147,21 @@
         let filtroAlertas = false;
         let listadoEquipos = [];
 
-        // 1. CONTROL DE ROLES Y ACCESO
+        // 1. ACCESO
         async function checkUser() {
             const { data: { user }, error } = await client.auth.getUser();
-            if (error || !user) {
-                window.location.href = 'index.html';
-                return;
-            }
+            if (error || !user) { window.location.href = 'index.html'; return; }
             const meta = user.user_metadata || user.raw_user_meta_data || {};
-            const role = meta.role;
-            console.log("Sesión iniciada como:", user.email, "| Rol:", role);
-            if (role === 'admin') {
-                const menuAdmin = document.getElementById('menu-admin');
-                if (menuAdmin) menuAdmin.classList.remove('hidden');
+            console.log("Sesión:", user.email, "| Rol:", meta.role);
+            if (meta.role === 'admin') {
+                document.getElementById('menu-admin').classList.remove('hidden');
             }
         }
 
-        // 2. CÁLCULO DE FECHAS Y ESTADOS
+        // 2. CÁLCULO DE FECHAS
         function calcularProxima(fechaStr, mesesTotales = 12) {
             if (!fechaStr || fechaStr === '-' || fechaStr === 'No') {
-                return { fecha: 'Pendiente', clase: 'text-slate-300 italic font-medium', caducado: false };
+                return { fecha: 'Pendiente', clase: 'text-slate-300 italic font-medium', caducado: false, obj: null };
             }
             try {
                 const p = fechaStr.split('/');
@@ -183,67 +171,49 @@
                 const diffMeses = (fecha - hoy) / (1000 * 60 * 60 * 24 * 30);
                 let clase = 'text-green-600 font-bold';
                 let esPasado = false;
-                if (fecha < hoy) {
-                    clase = 'animate-text-red';
-                    esPasado = true;
-                } else if (diffMeses < 2) {
-                    clase = 'text-orange-500 font-bold';
-                }
+                if (fecha < hoy) { clase = 'animate-text-red'; esPasado = true; }
+                else if (diffMeses < 2) { clase = 'text-orange-500 font-bold'; }
                 return { fecha: fecha.toLocaleDateString('es-ES'), clase, caducado: esPasado, obj: fecha };
-            } catch(e) { 
-                return { fecha: 'Error Fecha', clase: 'text-red-500 font-bold', caducado: false }; 
+            } catch(e) {
+                return { fecha: 'Error Fecha', clase: 'text-red-500 font-bold', caducado: false, obj: null };
             }
         }
 
-        // 3. FILTROS Y CARGA DE TABLA
-         async function aplicarFiltros() { 
-            await cargarTabla(false);
-         }
-
-        function toggleAlertas() {
-            filtroAlertas = !filtroAlertas;
-            const btn = document.getElementById('btn-alertas');
-            if (filtroAlertas) {
-                btn.classList.add('bg-red-600', 'text-white');
-                btn.innerHTML = '<i class="fa-solid fa-filter-circle-xmark"></i> QUITAR FILTRO';
-            } else {
-                btn.classList.remove('bg-red-600', 'text-white');
-                btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> REQUIEREN CALIBRACIÓN';
-            }
-            cargarTabla(false);
-        }
-
-        async function cargarTabla(forceRefetch = true) {
+        // 3. CARGA DE DATOS — solo hace fetch, luego llama a renderTabla()
+        async function cargarDatos() {
             const body = document.getElementById('tabla-body');
-            
-            if (forceRefetch || listadoEquipos.length === 0) {
-                body.innerHTML = '<tr><td colspan="5" class="p-10 text-center"><i class="fa-solid fa-sync fa-spin text-blue-500 text-2xl"></i></td></tr>';
-                const { data, error } = await client.from('equipos').select('*');
-                if (error) {
-                    body.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-red-600 font-bold bg-red-50">Error al cargar datos: Activa las Policies (RLS) en Supabase.<br>${error.message}</td></tr>`;
-                    return;
-                }
-                listadoEquipos = data;
+            body.innerHTML = '<tr><td colspan="5" class="p-10 text-center"><i class="fa-solid fa-sync fa-spin text-blue-500 text-2xl"></i></td></tr>';
+            const { data, error } = await client.from('equipos').select('*');
+            if (error) {
+                body.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-red-600 font-bold bg-red-50">Error: ${error.message}</td></tr>`;
+                return;
             }
+            listadoEquipos = data;
+            console.log('Datos cargados:', listadoEquipos.length, 'equipos');
+            renderTabla();
+        }
 
-            // Leemos todos los filtros aquí fuera
-            const f_gen = document.getElementById('f_general').value.toLowerCase();
+        // 4. RENDER — solo filtra y pinta, nunca hace fetch
+        function renderTabla() {
+            const body = document.getElementById('tabla-body');
+            if (listadoEquipos.length === 0) return;
+
+            const f_gen = document.getElementById('f_general').value.toLowerCase().trim();
             const f_gfh = document.getElementById('f_gfh').value;
             const f_cal = document.getElementById('f_calibracion').checked;
 
-            console.log('--- FILTROS ACTIVOS ---');
-            console.log('f_gen:', f_gen, '| f_gfh:', f_gfh, '| f_cal:', f_cal, '| filtroAlertas:', filtroAlertas);
+            console.log(`[render] gen="${f_gen}" gfh="${f_gfh}" cal=${f_cal} alertas=${filtroAlertas}`);
 
             const filtrados = listadoEquipos.filter(item => {
                 const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
-                const coincideBusqueda = !f_gen || item.Nombre.toLowerCase().includes(f_gen) || item.Código.toLowerCase().includes(f_gen);
-                const coincideCentro = !f_gfh || (item.GFH && item.GFH.includes(f_gfh));
-                const coincideAlerta = !filtroAlertas || prox.caducado;
-                const coincideCalib = !f_cal || item['Equipos con calibración'] === 'Sí';
-                return coincideBusqueda && coincideCentro && coincideAlerta && coincideCalib;
+                const okBusqueda = !f_gen || (item.Nombre && item.Nombre.toLowerCase().includes(f_gen)) || (item.Código && item.Código.toLowerCase().includes(f_gen));
+                const okCentro   = !f_gfh || (item.GFH && item.GFH.includes(f_gfh));
+                const okAlerta   = !filtroAlertas || prox.caducado;
+                const okCalib    = !f_cal || item['Equipos con calibración'] === 'Sí';
+                return okBusqueda && okCentro && okAlerta && okCalib;
             });
 
-            console.log('Resultado filtrados:', filtrados.length);
+            console.log(`[render] Resultado: ${filtrados.length} equipos`);
 
             if (filtrados.length === 0) {
                 body.innerHTML = '<tr><td colspan="5" class="p-10 text-center text-slate-400 italic">No se han encontrado equipos con estos filtros.</td></tr>';
@@ -270,20 +240,29 @@
             }).join('');
         }
 
-        // 4. LÓGICA DEL CALENDARIO
+        // 5. BOTÓN REQUIEREN CALIBRACIÓN
+        function toggleAlertas() {
+            filtroAlertas = !filtroAlertas;
+            const btn = document.getElementById('btn-alertas');
+            if (filtroAlertas) {
+                btn.classList.add('bg-red-600', 'text-white');
+                btn.innerHTML = '<i class="fa-solid fa-filter-circle-xmark"></i> QUITAR FILTRO';
+            } else {
+                btn.classList.remove('bg-red-600', 'text-white');
+                btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> REQUIEREN CALIBRACIÓN';
+            }
+            renderTabla();
+        }
+
+        // 6. CALENDARIO
         function initCalendar() {
             const container = document.getElementById('calendar-container');
             if (calendar) calendar.destroy();
-
             calendar = new FullCalendar.Calendar(container, {
                 initialView: 'dayGridMonth',
                 locale: 'es',
                 firstDay: 1,
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek'
-                },
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
                 themeSystem: 'standard',
                 events: async (info, success, failure) => {
                     const { data } = await client.from('equipos').select('*');
@@ -292,10 +271,9 @@
                         .map(item => {
                             const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
                             if (!prox.obj) return null;
-                            const isoDate = prox.obj.toISOString().split('T')[0];
                             return {
                                 title: item.Nombre + " (" + item.Código + ")",
-                                start: isoDate,
+                                start: prox.obj.toISOString().split('T')[0],
                                 color: prox.caducado ? '#ef4444' : '#10b981',
                                 extendedProps: { codigo: item.Código, centro: item.GFH }
                             };
@@ -306,27 +284,22 @@
                     alert("Equipo: " + info.event.title + "\nCódigo: " + info.event.extendedProps.codigo + "\nCentro: " + info.event.extendedProps.centro);
                 }
             });
-
             calendar.render();
         }
 
-        // 5. INTERRUPTOR DE SECCIONES
+        // 7. TABS
         function showSection(id) {
             document.getElementById('sec-inventario').classList.toggle('hidden', id !== 'inventario');
             document.getElementById('sec-calendario').classList.toggle('hidden', id !== 'calendario');
             if (id === 'calendario') {
                 setTimeout(() => {
-                    if (!calendar) {
-                        initCalendar();
-                    } else {
-                        calendar.render();
-                        calendar.refetchEvents();
-                    }
+                    if (!calendar) { initCalendar(); }
+                    else { calendar.render(); calendar.refetchEvents(); }
                 }, 100);
             }
         }
 
-        // 6. MODAL DE EDICIÓN
+        // 8. MODAL EDICIÓN
         function openEdit(item) {
             document.getElementById('edit-id').value = item.Código;
             document.getElementById('edit-fecha').value = item['Fecha cal.'] || '';
@@ -342,9 +315,9 @@
         }
 
         async function guardarCambios() {
-            const id = document.getElementById('edit-id').value;
-            const fecha = document.getElementById('edit-fecha').value;
-            const valor = document.getElementById('peri-valor').value;
+            const id     = document.getElementById('edit-id').value;
+            const fecha  = document.getElementById('edit-fecha').value;
+            const valor  = document.getElementById('peri-valor').value;
             const unidad = document.getElementById('peri-unidad').value;
             const mesesTotales = parseInt(valor) * parseInt(unidad);
             const { error } = await client.from('equipos')
@@ -354,7 +327,7 @@
                 alert("Error al guardar: " + error.message);
             } else {
                 closeEdit();
-                cargarTabla(true);
+                await cargarDatos();
             }
         }
 
@@ -362,15 +335,15 @@
             document.getElementById('modal-edit').classList.add('hidden');
         }
 
-        // 7. CERRAR SESIÓN
+        // 9. LOGOUT
         async function logout() {
             await client.auth.signOut();
             location.href = 'index.html';
         }
 
-        // INICIALIZACIÓN
+        // INICIO
         checkUser();
-        cargarTabla();
+        cargarDatos();
     </script>
 </body>
 </html>
