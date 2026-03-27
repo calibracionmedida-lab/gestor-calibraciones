@@ -134,8 +134,6 @@
         const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo';
         const client = supabase.createClient(_URL, _KEY);
 
-        let usuariosList = [];
-
         // Verificar que sea admin
         async function checkAdmin() {
             const { data: { user } } = await client.auth.getUser();
@@ -151,44 +149,44 @@
             return true;
         }
 
-        // Cargar lista de usuarios
+        // Cargar lista de usuarios desde tabla 'profiles'
         async function cargarUsuarios() {
             const tbody = document.getElementById('tabla-usuarios');
             tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Cargando usuarios...</td></tr>';
 
-            // Obtener usuarios desde auth
-            const { data: { users }, error } = await client.auth.admin.listUsers();
-            
+            // Obtener usuarios desde tabla profiles (accesible con anon key + RLS)
+            const { data: profiles, error } = await client
+                .from('profiles')
+                .select('*')
+                .order('created_at', { ascending: false });
+
             if (error) {
                 tbody.innerHTML = `<tr><td colspan="4" class="p-5 text-center text-red-600 font-bold bg-red-50">Error: ${error.message}</td></tr>`;
                 return;
             }
 
-            usuariosList = users || [];
-            
-            if (usuariosList.length === 0) {
+            if (!profiles || profiles.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400 italic">No hay usuarios registrados</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = usuariosList.map(user => {
-                const meta = user.user_metadata || {};
-                const rol = meta.role || 'user';
+            tbody.innerHTML = profiles.map(profile => {
+                const rol = profile.role || 'user';
                 const rolClass = rol === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
                 const rolText = rol === 'admin' ? 'Administrador' : 'Técnico';
-                const estado = user.email_confirmed_at ? 
+                const estado = profile.email_confirmed ? 
                     '<span class="text-green-600 font-bold text-xs"><i class="fa-solid fa-check-circle mr-1"></i>Activo</span>' : 
                     '<span class="text-amber-600 font-bold text-xs"><i class="fa-solid fa-clock mr-1"></i>Pendiente</span>';
 
                 return `
                 <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="p-4 font-medium text-slate-800">${user.email}</td>
+                    <td class="p-4 font-medium text-slate-800">${profile.email}</td>
                     <td class="p-4">
                         <span class="px-3 py-1 rounded-full text-xs font-bold ${rolClass}">${rolText}</span>
                     </td>
                     <td class="p-4 text-center">${estado}</td>
                     <td class="p-4 text-center">
-                        <button onclick='abrirEditarUsuario(${JSON.stringify(user)})' class="text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-all" title="Editar usuario">
+                        <button onclick='abrirEditarUsuario(${JSON.stringify(profile)})' class="text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-all" title="Editar usuario">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
                     </td>
@@ -228,33 +226,33 @@
             const { data, error } = await client.auth.signUp({
                 email: email,
                 password: pass,
-                options: { data: { role: rol } }
+                options: { 
+                    data: { role: rol },
+                    emailRedirectTo: window.location.origin + '/dashboard.html'
+                }
             });
 
             if (error) {
                 msg.innerText = "Error: " + error.message;
                 msg.className = "text-sm font-bold text-center mt-2 text-red-500";
             } else {
-                msg.innerText = "Usuario creado correctamente";
+                msg.innerText = "Usuario creado. Email de confirmación enviado.";
                 msg.className = "text-sm font-bold text-center mt-2 text-green-600";
                 document.getElementById('u_email').value = '';
                 document.getElementById('u_pass').value = '';
                 
-                // Recargar lista después de 1 segundo
                 setTimeout(() => {
                     ocultarFormularioAlta();
                     cargarUsuarios();
-                }, 1000);
+                }, 1500);
             }
         }
 
         // Abrir modal editar
-        function abrirEditarUsuario(user) {
-            document.getElementById('edit-user-id').value = user.id;
-            document.getElementById('edit-user-email').value = user.email;
-            
-            const meta = user.user_metadata || {};
-            document.getElementById('edit-user-rol').value = meta.role || 'user';
+        function abrirEditarUsuario(profile) {
+            document.getElementById('edit-user-id').value = profile.id;
+            document.getElementById('edit-user-email').value = profile.email;
+            document.getElementById('edit-user-rol').value = profile.role || 'user';
             document.getElementById('edit-user-reset-pass').checked = false;
             document.getElementById('edit-user-msg').innerText = '';
             
@@ -270,18 +268,17 @@
             const userId = document.getElementById('edit-user-id').value;
             const nuevoRol = document.getElementById('edit-user-rol').value;
             const resetPass = document.getElementById('edit-user-reset-pass').checked;
+            const email = document.getElementById('edit-user-email').value;
             const msg = document.getElementById('edit-user-msg');
 
             msg.innerText = "Guardando...";
             msg.className = "text-sm font-bold text-center mt-2 text-blue-500";
 
-            // Actualizar metadatos (rol)
-            const { error: errorUpdate } = await client.auth.admin.updateUserById(
-                userId,
-                { 
-                    user_metadata: { role: nuevoRol }
-                }
-            );
+            // Actualizar rol en tabla profiles
+            const { error: errorUpdate } = await client
+                .from('profiles')
+                .update({ role: nuevoRol })
+                .eq('id', userId);
 
             if (errorUpdate) {
                 msg.innerText = "Error al actualizar: " + errorUpdate.message;
@@ -289,14 +286,14 @@
                 return;
             }
 
-            // Si se marcó resetear contraseña
+            // Si se marcó resetear contraseña, enviar email de recuperación
             if (resetPass) {
-                const { error: errorReset } = await client.auth.resetPasswordForEmail(
-                    document.getElementById('edit-user-email').value
-                );
+                const { error: errorReset } = await client.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/reset-password.html'
+                });
                 
                 if (errorReset) {
-                    msg.innerText = "Rol actualizado, pero error al resetear pass: " + errorReset.message;
+                    msg.innerText = "Rol actualizado, pero error al resetear: " + errorReset.message;
                     msg.className = "text-sm font-bold text-center mt-2 text-amber-500";
                     return;
                 }
