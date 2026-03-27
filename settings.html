@@ -9,86 +9,317 @@
 </head>
 <body class="bg-slate-100 min-h-screen p-8">
 
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-6xl mx-auto">
         <button onclick="location.href='dashboard.html'" class="mb-6 text-slate-500 hover:text-blue-600 font-bold">
             <i class="fa-solid fa-arrow-left mr-2"></i> Volver al Dashboard
         </button>
 
         <h1 class="text-3xl font-bold text-slate-800 mb-8">Panel de Administración</h1>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h2 class="text-xl font-bold mb-4 text-blue-600"><i class="fa-solid fa-user-plus mr-2"></i>Alta de Técnicos</h2>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-600 mb-1">Email</label>
-                        <input type="email" id="u_email" class="w-full p-3 border rounded-lg bg-slate-50">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-600 mb-1">Contraseña temporal</label>
-                        <input type="password" id="u_pass" class="w-full p-3 border rounded-lg bg-slate-50">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-600 mb-1">Rol en el sistema</label>
-                        <select id="u_rol" class="w-full p-3 border rounded-lg bg-slate-50">
-                            <option value="user">Técnico (Solo lectura/edición básica)</option>
-                            <option value="admin">Administrador (Acceso total)</option>
-                        </select>
-                    </div>
-                    <button onclick="crearUsuario()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">Registrar Usuario</button>
-                    <p id="u_msg" class="text-sm font-bold text-center mt-2"></p>
-                </div>
+        <!-- Lista de Usuarios -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-users mr-2 text-blue-600"></i>Usuarios Registrados</h2>
+                <button onclick="mostrarFormularioAlta()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors">
+                    <i class="fa-solid fa-plus mr-2"></i>Nuevo Usuario
+                </button>
             </div>
+            
+            <div id="lista-usuarios" class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Email</th>
+                            <th class="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Rol</th>
+                            <th class="p-4 text-xs font-black text-slate-500 uppercase tracking-wider text-center">Estado</th>
+                            <th class="p-4 text-xs font-black text-slate-500 uppercase tracking-wider text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-usuarios" class="divide-y divide-slate-100 text-sm">
+                        <tr>
+                            <td colspan="4" class="p-8 text-center text-slate-400">
+                                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Cargando usuarios...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h2 class="text-xl font-bold mb-4 text-slate-800"><i class="fa-solid fa-envelope mr-2"></i>Servidor de Correos (SMTP)</h2>
-                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
-                    <p class="text-sm text-blue-800">Por normativas de seguridad, el SMTP para recuperar contraseñas debe configurarse directamente en la consola de la base de datos.</p>
+        <!-- Formulario de Alta (oculto por defecto) -->
+        <div id="form-alta" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-blue-600"><i class="fa-solid fa-user-plus mr-2"></i>Alta de Usuario</h2>
+                <button onclick="ocultarFormularioAlta()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">Email</label>
+                    <input type="email" id="u_email" class="w-full p-3 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <ol class="list-decimal ml-5 text-sm text-slate-600 space-y-2">
-                    <li>Entra en <b>Supabase</b>.</li>
-                    <li>Ve a la rueda dentada (<b>Project Settings</b>) abajo a la izquierda.</li>
-                    <li>Selecciona <b>Auth</b> y baja hasta <b>SMTP Settings</b>.</li>
-                    <li>Activa <b>Enable Custom SMTP</b>.</li>
-                    <li>Introduce los datos de tu servidor de correo (Host, Puerto, Usuario, Contraseña).</li>
-                    <li>Guarda los cambios.</li>
-                </ol>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">Contraseña temporal</label>
+                    <input type="password" id="u_pass" class="w-full p-3 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600 mb-1">Rol en el sistema</label>
+                    <select id="u_rol" class="w-full p-3 border rounded-lg bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="user">Técnico (Solo lectura/edición básica)</option>
+                        <option value="admin">Administrador (Acceso total)</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="crearUsuario()" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-colors">Registrar Usuario</button>
+                    <button onclick="ocultarFormularioAlta()" class="px-4 py-3 border border-slate-300 rounded-lg font-bold text-slate-600 hover:bg-slate-50 transition-colors">Cancelar</button>
+                </div>
+                <p id="u_msg" class="text-sm font-bold text-center mt-2"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Usuario -->
+    <div id="modal-editar" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                <h3 class="text-2xl font-black text-slate-800">Editar Usuario</h3>
+                <button onclick="cerrarModalEditar()" class="text-slate-300 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-circle-xmark text-2xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <input type="hidden" id="edit-user-id">
+                
+                <div>
+                    <label class="block text-xs font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Email</label>
+                    <input type="text" id="edit-user-email" readonly class="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-600 font-medium cursor-not-allowed">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Rol</label>
+                    <select id="edit-user-rol" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700 bg-white">
+                        <option value="user">Técnico (Solo lectura/edición básica)</option>
+                        <option value="admin">Administrador (Acceso total)</option>
+                    </select>
+                </div>
+                
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" id="edit-user-reset-pass" class="w-5 h-5 accent-amber-500 cursor-pointer">
+                        <div>
+                            <span class="font-bold text-amber-800 text-sm">Restablecer contraseña</span>
+                            <p class="text-xs text-amber-600 mt-0.5">Se enviará un email para crear nueva contraseña</p>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="flex gap-3 pt-4">
+                    <button onclick="guardarCambiosUsuario()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-black uppercase tracking-wider hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95">
+                        Guardar Cambios
+                    </button>
+                    <button onclick="cerrarModalEditar()" class="px-6 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                        Cancelar
+                    </button>
+                </div>
+                
+                <p id="edit-user-msg" class="text-sm font-bold text-center mt-2"></p>
             </div>
         </div>
     </div>
 
     <script>
         const _URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
-        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo'; // PON TU CLAVE AQUÍ
+        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo';
         const client = supabase.createClient(_URL, _KEY);
 
+        let usuariosList = [];
+
+        // Verificar que sea admin
+        async function checkAdmin() {
+            const { data: { user } } = await client.auth.getUser();
+            if (!user) {
+                window.location.href = 'index.html';
+                return false;
+            }
+            const meta = user.user_metadata || {};
+            if (meta.role !== 'admin') {
+                window.location.href = 'dashboard.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Cargar lista de usuarios
+        async function cargarUsuarios() {
+            const tbody = document.getElementById('tabla-usuarios');
+            tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Cargando usuarios...</td></tr>';
+
+            // Obtener usuarios desde auth
+            const { data: { users }, error } = await client.auth.admin.listUsers();
+            
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-5 text-center text-red-600 font-bold bg-red-50">Error: ${error.message}</td></tr>`;
+                return;
+            }
+
+            usuariosList = users || [];
+            
+            if (usuariosList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400 italic">No hay usuarios registrados</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = usuariosList.map(user => {
+                const meta = user.user_metadata || {};
+                const rol = meta.role || 'user';
+                const rolClass = rol === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
+                const rolText = rol === 'admin' ? 'Administrador' : 'Técnico';
+                const estado = user.email_confirmed_at ? 
+                    '<span class="text-green-600 font-bold text-xs"><i class="fa-solid fa-check-circle mr-1"></i>Activo</span>' : 
+                    '<span class="text-amber-600 font-bold text-xs"><i class="fa-solid fa-clock mr-1"></i>Pendiente</span>';
+
+                return `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="p-4 font-medium text-slate-800">${user.email}</td>
+                    <td class="p-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold ${rolClass}">${rolText}</span>
+                    </td>
+                    <td class="p-4 text-center">${estado}</td>
+                    <td class="p-4 text-center">
+                        <button onclick='abrirEditarUsuario(${JSON.stringify(user)})' class="text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-all" title="Editar usuario">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Mostrar/ocultar formulario de alta
+        function mostrarFormularioAlta() {
+            document.getElementById('form-alta').classList.remove('hidden');
+            document.getElementById('u_email').focus();
+        }
+
+        function ocultarFormularioAlta() {
+            document.getElementById('form-alta').classList.add('hidden');
+            document.getElementById('u_email').value = '';
+            document.getElementById('u_pass').value = '';
+            document.getElementById('u_msg').innerText = '';
+        }
+
+        // Crear usuario
         async function crearUsuario() {
-            const email = document.getElementById('u_email').value;
+            const email = document.getElementById('u_email').value.trim();
             const pass = document.getElementById('u_pass').value;
             const rol = document.getElementById('u_rol').value;
             const msg = document.getElementById('u_msg');
 
+            if (!email || !pass) {
+                msg.innerText = "Completa todos los campos";
+                msg.className = "text-sm font-bold text-center mt-2 text-red-500";
+                return;
+            }
+
             msg.innerText = "Registrando...";
             msg.className = "text-sm font-bold text-center mt-2 text-blue-500";
 
-            // Registramos al usuario en Supabase Auth
             const { data, error } = await client.auth.signUp({
                 email: email,
                 password: pass,
-                options: { data: { role: rol } } // Guardamos el rol en los metadatos del usuario
+                options: { data: { role: rol } }
             });
 
             if (error) {
                 msg.innerText = "Error: " + error.message;
                 msg.className = "text-sm font-bold text-center mt-2 text-red-500";
             } else {
-                msg.innerText = "Usuario creado. Ya puede iniciar sesión.";
+                msg.innerText = "Usuario creado correctamente";
                 msg.className = "text-sm font-bold text-center mt-2 text-green-600";
                 document.getElementById('u_email').value = '';
                 document.getElementById('u_pass').value = '';
+                
+                // Recargar lista después de 1 segundo
+                setTimeout(() => {
+                    ocultarFormularioAlta();
+                    cargarUsuarios();
+                }, 1000);
             }
         }
+
+        // Abrir modal editar
+        function abrirEditarUsuario(user) {
+            document.getElementById('edit-user-id').value = user.id;
+            document.getElementById('edit-user-email').value = user.email;
+            
+            const meta = user.user_metadata || {};
+            document.getElementById('edit-user-rol').value = meta.role || 'user';
+            document.getElementById('edit-user-reset-pass').checked = false;
+            document.getElementById('edit-user-msg').innerText = '';
+            
+            document.getElementById('modal-editar').classList.remove('hidden');
+        }
+
+        function cerrarModalEditar() {
+            document.getElementById('modal-editar').classList.add('hidden');
+        }
+
+        // Guardar cambios usuario
+        async function guardarCambiosUsuario() {
+            const userId = document.getElementById('edit-user-id').value;
+            const nuevoRol = document.getElementById('edit-user-rol').value;
+            const resetPass = document.getElementById('edit-user-reset-pass').checked;
+            const msg = document.getElementById('edit-user-msg');
+
+            msg.innerText = "Guardando...";
+            msg.className = "text-sm font-bold text-center mt-2 text-blue-500";
+
+            // Actualizar metadatos (rol)
+            const { error: errorUpdate } = await client.auth.admin.updateUserById(
+                userId,
+                { 
+                    user_metadata: { role: nuevoRol }
+                }
+            );
+
+            if (errorUpdate) {
+                msg.innerText = "Error al actualizar: " + errorUpdate.message;
+                msg.className = "text-sm font-bold text-center mt-2 text-red-500";
+                return;
+            }
+
+            // Si se marcó resetear contraseña
+            if (resetPass) {
+                const { error: errorReset } = await client.auth.resetPasswordForEmail(
+                    document.getElementById('edit-user-email').value
+                );
+                
+                if (errorReset) {
+                    msg.innerText = "Rol actualizado, pero error al resetear pass: " + errorReset.message;
+                    msg.className = "text-sm font-bold text-center mt-2 text-amber-500";
+                    return;
+                }
+            }
+
+            msg.innerText = resetPass ? "Cambios guardados y email de reset enviado" : "Cambios guardados correctamente";
+            msg.className = "text-sm font-bold text-center mt-2 text-green-600";
+
+            setTimeout(() => {
+                cerrarModalEditar();
+                cargarUsuarios();
+            }, 1000);
+        }
+
+        // Inicializar
+        async function init() {
+            const esAdmin = await checkAdmin();
+            if (esAdmin) {
+                cargarUsuarios();
+            }
+        }
+
+        init();
     </script>
 </body>
 </html>
