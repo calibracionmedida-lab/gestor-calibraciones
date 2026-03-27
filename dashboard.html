@@ -10,7 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     
     <style>
-        /* Animación de latido solo en el color del texto (caducados) */
         @keyframes heartbeat-text {
             0%, 100% { color: #dc2626; transform: scale(1); }
             50% { color: #f87171; transform: scale(1.05); }
@@ -21,9 +20,6 @@
             font-weight: 900;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
-        /* Para ocultar elementos según rol */
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        /* Animación de entrada para el modal lateral */
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
     </style>
 </head>
@@ -99,8 +95,7 @@
                                 <th class="p-4 text-[11px] font-black text-slate-400 uppercase tracking-wider text-center">Ajustes</th>
                             </tr>
                         </thead>
-                        <tbody id="tabla-body" class="divide-y divide-slate-100 text-sm">
-                            </tbody>
+                        <tbody id="tabla-body" class="divide-y divide-slate-100 text-sm"></tbody>
                     </table>
                 </div>
             </section>
@@ -151,75 +146,50 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN (Sustituye por tus claves si no son estas)
         const _URL = 'https://vefxssymaocbdtuupdwh.supabase.co';
-        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo'; // Asegúrate de que sea la 'anon public key'
+        const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo';
         const client = supabase.createClient(_URL, _KEY);
 
         let calendar;
-        let filtroAlertas = false; // Estado del botón Requieren Calibración
-        let listadoEquipos = []; // Caché de datos para filtros rápidos
+        let filtroAlertas = false;
+        let listadoEquipos = [];
 
         // 1. CONTROL DE ROLES Y ACCESO
         async function checkUser() {
             const { data: { user }, error } = await client.auth.getUser();
-            
             if (error || !user) {
-                // Si no hay sesión, al login
                 window.location.href = 'index.html';
                 return;
             }
-
-            // Leemos el rol de los metadatos (robusto)
             const meta = user.user_metadata || user.raw_user_meta_data || {};
             const role = meta.role;
-
             console.log("Sesión iniciada como:", user.email, "| Rol:", role);
-
             if (role === 'admin') {
-                // Si es admin, mostramos el menú oculto
                 const menuAdmin = document.getElementById('menu-admin');
                 if (menuAdmin) menuAdmin.classList.remove('hidden');
             }
         }
 
-        // 2. CÁLCULO DE FECHAS Y ESTADOS (LÓGICA CORE)
+        // 2. CÁLCULO DE FECHAS Y ESTADOS
         function calcularProxima(fechaStr, mesesTotales = 12) {
-            // Si no hay fecha o la periodicidad es nula
             if (!fechaStr || fechaStr === '-' || fechaStr === 'No') {
                 return { fecha: 'Pendiente', clase: 'text-slate-300 italic font-medium', caducado: false };
             }
-
             try {
-                // Parseamos DD/MM/YYYY a objeto Date
                 const p = fechaStr.split('/');
-                const fecha = new Date(p[2], p[1]-1, p[0]); // Año, Mes(0-11), Día
-                
-                // Sumamos la periodicidad (en meses)
+                const fecha = new Date(p[2], p[1]-1, p[0]);
                 fecha.setMonth(fecha.getMonth() + parseInt(mesesTotales));
-                
                 const hoy = new Date();
-                const diffMeses = (fecha - hoy) / (1000 * 60 * 60 * 24 * 30); // Diferencia aproximada en meses
-                
-                // Determinamos color y animación según cercanía a hoy
-                let clase = 'text-green-600 font-bold'; // Por defecto: En verde
+                const diffMeses = (fecha - hoy) / (1000 * 60 * 60 * 24 * 30);
+                let clase = 'text-green-600 font-bold';
                 let esPasado = false;
-
                 if (fecha < hoy) {
-                    // CADUCADO: Animación de latido en el texto rojo
                     clase = 'animate-text-red';
                     esPasado = true;
                 } else if (diffMeses < 2) {
-                    // PRÓXIMO (menos de 2 meses): Naranja
                     clase = 'text-orange-500 font-bold';
                 }
-
-                return { 
-                    fecha: fecha.toLocaleDateString('es-ES'), // DD/MM/YYYY
-                    clase: clase,
-                    caducado: esPasado,
-                    obj: fecha // Devolvemos el objeto Date para el calendario
-                };
+                return { fecha: fecha.toLocaleDateString('es-ES'), clase, caducado: esPasado, obj: fecha };
             } catch(e) { 
                 return { fecha: 'Error Fecha', clase: 'text-red-500 font-bold', caducado: false }; 
             }
@@ -227,61 +197,60 @@
 
         // 3. FILTROS Y CARGA DE TABLA
         function aplicarFiltros() { 
-            cargarTabla(false); // Recargamos la tabla usando la caché
+            cargarTabla(false);
         }
 
         function toggleAlertas() {
-            filtroAlertas = !filtroAlertas; // Cambiamos el estado
+            filtroAlertas = !filtroAlertas;
             const btn = document.getElementById('btn-alertas');
-            
-            // Actualizamos estilo del botón
-            if(filtroAlertas) {
+            if (filtroAlertas) {
                 btn.classList.add('bg-red-600', 'text-white');
                 btn.innerHTML = '<i class="fa-solid fa-filter-circle-xmark"></i> QUITAR FILTRO';
             } else {
                 btn.classList.remove('bg-red-600', 'text-white');
                 btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> REQUIEREN CALIBRACIÓN';
             }
-            cargarTabla(false); // Recargamos tabla
+            cargarTabla(false);
         }
 
         async function cargarTabla(forceRefetch = true) {
             const body = document.getElementById('tabla-body');
             
-            // Si necesitamos datos frescos o no hay caché
-            if(forceRefetch || listadoEquipos.length === 0) {
+            if (forceRefetch || listadoEquipos.length === 0) {
                 body.innerHTML = '<tr><td colspan="5" class="p-10 text-center"><i class="fa-solid fa-sync fa-spin text-blue-500 text-2xl"></i></td></tr>';
-                // TABLA 'equipos'
                 const { data, error } = await client.from('equipos').select('*');
                 if (error) {
                     body.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-red-600 font-bold bg-red-50">Error al cargar datos: Activa las Policies (RLS) en Supabase.<br>${error.message}</td></tr>`;
                     return;
                 }
-                listadoEquipos = data; // Guardamos en caché
+                listadoEquipos = data;
             }
 
-// Obtenemos valores de filtros
-const f_gen = document.getElementById('f_general').value.toLowerCase();
-const f_gfh = document.getElementById('f_gfh').value;
-const f_cal = document.getElementById('f_calibracion').checked;
+            // Leemos todos los filtros aquí fuera
+            const f_gen = document.getElementById('f_general').value.toLowerCase();
+            const f_gfh = document.getElementById('f_gfh').value;
+            const f_cal = document.getElementById('f_calibracion').checked;
 
-const filtrados = listadoEquipos.filter(item => {
-    const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
-    const coincideBusqueda = !f_gen || item.Nombre.toLowerCase().includes(f_gen) || item.Código.toLowerCase().includes(f_gen);
-    const coincideCentro = !f_gfh || (item.GFH && item.GFH.includes(f_gfh));
-    const coincideAlerta = !filtroAlertas || prox.caducado;
-    const coincideCalib = !f_cal || item['Equipos con calibración'] === 'Sí';
-    return coincideBusqueda && coincideCentro && coincideAlerta && coincideCalib;
-});
+            console.log('--- FILTROS ACTIVOS ---');
+            console.log('f_gen:', f_gen, '| f_gfh:', f_gfh, '| f_cal:', f_cal, '| filtroAlertas:', filtroAlertas);
 
-            // Renderizamos la tabla
-            if(filtrados.length === 0) {
+            const filtrados = listadoEquipos.filter(item => {
+                const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
+                const coincideBusqueda = !f_gen || item.Nombre.toLowerCase().includes(f_gen) || item.Código.toLowerCase().includes(f_gen);
+                const coincideCentro = !f_gfh || (item.GFH && item.GFH.includes(f_gfh));
+                const coincideAlerta = !filtroAlertas || prox.caducado;
+                const coincideCalib = !f_cal || item['Equipos con calibración'] === 'Sí';
+                return coincideBusqueda && coincideCentro && coincideAlerta && coincideCalib;
+            });
+
+            console.log('Resultado filtrados:', filtrados.length);
+
+            if (filtrados.length === 0) {
                 body.innerHTML = '<tr><td colspan="5" class="p-10 text-center text-slate-400 italic">No se han encontrado equipos con estos filtros.</td></tr>';
                 return;
             }
 
             body.innerHTML = filtrados.map(item => {
-                // Calculamos estado para cada fila
                 const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
                 return `
                 <tr class="hover:bg-blue-50/40 transition-colors group">
@@ -301,15 +270,15 @@ const filtrados = listadoEquipos.filter(item => {
             }).join('');
         }
 
-        // 4. LÓGICA DEL CALENDARIO (FULLCALENDAR)
+        // 4. LÓGICA DEL CALENDARIO
         function initCalendar() {
             const container = document.getElementById('calendar-container');
-            if (calendar) calendar.destroy(); // Limpiamos si ya existe
+            if (calendar) calendar.destroy();
 
             calendar = new FullCalendar.Calendar(container, {
                 initialView: 'dayGridMonth',
-                locale: 'es', // Idioma español
-                firstDay: 1, // Semana empieza en Lunes
+                locale: 'es',
+                firstDay: 1,
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
@@ -317,70 +286,58 @@ const filtrados = listadoEquipos.filter(item => {
                 },
                 themeSystem: 'standard',
                 events: async (info, success, failure) => {
-    const { data } = await client.from('equipos').select('*');
-    
-    const eventos = data
-        .filter(item => item['Equipos con calibración'] === 'Sí')
-        .map(item => {
-            const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
-            if (!prox.obj) return null;
+                    const { data } = await client.from('equipos').select('*');
+                    const eventos = data
+                        .filter(item => item['Equipos con calibración'] === 'Sí')
+                        .map(item => {
+                            const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
+                            if (!prox.obj) return null;
+                            const isoDate = prox.obj.toISOString().split('T')[0];
+                            return {
+                                title: item.Nombre + " (" + item.Código + ")",
+                                start: isoDate,
+                                color: prox.caducado ? '#ef4444' : '#10b981',
+                                extendedProps: { codigo: item.Código, centro: item.GFH }
+                            };
+                        }).filter(e => e !== null);
+                    success(eventos);
+                },
+                eventClick: (info) => {
+                    alert("Equipo: " + info.event.title + "\nCódigo: " + info.event.extendedProps.codigo + "\nCentro: " + info.event.extendedProps.centro);
+                }
+            });
 
-            const isoDate = prox.obj.toISOString().split('T')[0];
-
-            return {
-                title: item.Nombre + " (" + item.Código + ")",
-                start: isoDate,
-                color: prox.caducado ? '#ef4444' : '#10b981',
-                extendedProps: { codigo: item.Código, centro: item.GFH }
-            };
-        }).filter(e => e !== null);
-
-    success(eventos);
-},
-eventClick: (info) => {
-    alert("Equipo: " + info.event.title + "\nCódigo: " + info.event.extendedProps.codigo + "\nCentro: " + info.event.extendedProps.centro);
-}
-    });    
-    calendar.render();
+            calendar.render();
         }
 
-        // 5. INTERRUPTOR DE SECCIONES (TABS)
+        // 5. INTERRUPTOR DE SECCIONES
         function showSection(id) {
-            // Ocultamos/Mostramos divs
             document.getElementById('sec-inventario').classList.toggle('hidden', id !== 'inventario');
             document.getElementById('sec-calendario').classList.toggle('hidden', id !== 'calendario');
-            
-            if(id === 'calendario') {
-                // Pequeño retardo para dar tiempo a que el div sea visible (FullCalendar lo necesita)
+            if (id === 'calendario') {
                 setTimeout(() => {
-                    if(!calendar) {
+                    if (!calendar) {
                         initCalendar();
                     } else {
-                        calendar.render(); // Refresca el tamaño por si acaso
-                        calendar.refetchEvents(); // Recarga los datos frescos
+                        calendar.render();
+                        calendar.refetchEvents();
                     }
                 }, 100);
             }
         }
 
-        // 6. LÓGICA DEL MODAL DE EDICIÓN
+        // 6. MODAL DE EDICIÓN
         function openEdit(item) {
-            // Rellenamos el formulario
-            document.getElementById('edit-id').value = item.Código; // Usamos Código como ID único
+            document.getElementById('edit-id').value = item.Código;
             document.getElementById('edit-fecha').value = item['Fecha cal.'] || '';
-            
-            // Lógica inversa para la periodicidad inteligente
-            // Si el valor es múltiplo de 12 (años), convertimos
-            const p = item.periodicidad || 12; // 12 meses por defecto
+            const p = item.periodicidad || 12;
             if (p % 12 === 0) {
-                document.getElementById('peri-valor').value = p / 12; // Valor en años
-                document.getElementById('peri-unidad').value = "12"; // Unidad Años
+                document.getElementById('peri-valor').value = p / 12;
+                document.getElementById('peri-unidad').value = "12";
             } else {
-                document.getElementById('peri-valor').value = p; // Valor en meses
-                document.getElementById('peri-unidad').value = "1"; // Unidad Meses
+                document.getElementById('peri-valor').value = p;
+                document.getElementById('peri-unidad').value = "1";
             }
-            
-            // Mostramos modal
             document.getElementById('modal-edit').classList.remove('hidden');
         }
 
@@ -389,23 +346,15 @@ eventClick: (info) => {
             const fecha = document.getElementById('edit-fecha').value;
             const valor = document.getElementById('peri-valor').value;
             const unidad = document.getElementById('peri-unidad').value;
-            
-            // Convertimos la periodicidad inteligente a MESES totales para la DB
             const mesesTotales = parseInt(valor) * parseInt(unidad);
-
-            // Guardamos en Supabase (TABLA 'equipos')
             const { error } = await client.from('equipos')
-                .update({ 
-                    'Fecha cal.': fecha, 
-                    'periodicidad': mesesTotales 
-                })
-                .eq('Código', id); // Asegúrate de que 'Código' sea tu clave primaria/única en DB
-
-            if(error) {
+                .update({ 'Fecha cal.': fecha, 'periodicidad': mesesTotales })
+                .eq('Código', id);
+            if (error) {
                 alert("Error al guardar: " + error.message);
             } else {
                 closeEdit();
-                cargarTabla(true); // Recargamos datos forzando refresco de caché
+                cargarTabla(true);
             }
         }
 
@@ -422,7 +371,6 @@ eventClick: (info) => {
         // INICIALIZACIÓN
         checkUser();
         cargarTabla();
-
     </script>
 </body>
 </html>
