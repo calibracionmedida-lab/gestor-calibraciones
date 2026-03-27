@@ -260,16 +260,13 @@
                 listadoEquipos = data; // Guardamos en caché
             }
 
-            // Obtenemos valores de filtros
-            const f_gen = document.getElementById('f_general').value.toLowerCase();
-            const f_gfh = document.getElementById('f_gfh').value;
+// Obtenemos valores de filtros
+const f_gen = document.getElementById('f_general').value.toLowerCase();
+const f_gfh = document.getElementById('f_gfh').value;
+const f_cal = document.getElementById('f_calibracion').checked;
 
-            // Filtramos los datos en memoria (rápido)
 const filtrados = listadoEquipos.filter(item => {
     const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
-    
-    const f_cal = document.getElementById('f_calibracion').checked;
-
     const coincideBusqueda = !f_gen || item.Nombre.toLowerCase().includes(f_gen) || item.Código.toLowerCase().includes(f_gen);
     const coincideCentro = !f_gfh || (item.GFH && item.GFH.includes(f_gfh));
     const coincideAlerta = !filtroAlertas || prox.caducado;
