@@ -196,9 +196,9 @@
         }
 
         // 3. FILTROS Y CARGA DE TABLA
-        function aplicarFiltros() { 
-            cargarTabla(false);
-        }
+         async function aplicarFiltros() { 
+            await cargarTabla(false);
+         }
 
         function toggleAlertas() {
             filtroAlertas = !filtroAlertas;
