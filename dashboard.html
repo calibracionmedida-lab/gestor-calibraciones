@@ -254,20 +254,36 @@
             renderTabla();
         }
 
-        // 6. CALENDARIO
+        // 6. CALENDARIO - AHORA CON FILTROS FUNCIONANDO
         function initCalendar() {
             const container = document.getElementById('calendar-container');
             if (calendar) calendar.destroy();
+            
+            // Obtener valores actuales de los filtros
+            const f_gen = document.getElementById('f_general').value.toLowerCase().trim();
+            const f_gfh = document.getElementById('f_gfh').value;
+            const f_cal = document.getElementById('f_calibracion').checked;
+            
             calendar = new FullCalendar.Calendar(container, {
                 initialView: 'dayGridMonth',
                 locale: 'es',
                 firstDay: 1,
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
                 themeSystem: 'standard',
-                events: async (info, success, failure) => {
-                    const { data } = await client.from('equipos').select('*');
-                    const eventos = data
-                        .filter(item => item['Equipos con calibración'] === 'Sí')
+                events: (info, success, failure) => {
+                    // Usar listadoEquipos (ya cargado) y aplicar filtros
+                    let eventos = listadoEquipos
+                        .filter(item => {
+                            // Aplicar mismos filtros que la tabla
+                            const okBusqueda = !f_gen || 
+                                (item.Nombre && item.Nombre.toLowerCase().includes(f_gen)) || 
+                                (item.Código && item.Código.toLowerCase().includes(f_gen));
+                            const okCentro = !f_gfh || (item.GFH && item.GFH.includes(f_gfh));
+                            const okCalib = !f_cal || item['Equipos con calibración'] === 'Sí';
+                            
+                            return okBusqueda && okCentro && okCalib;
+                        })
+                        .filter(item => item['Equipos con calibración'] === 'Sí') // Solo con calibración para calendario
                         .map(item => {
                             const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
                             if (!prox.obj) return null;
@@ -278,6 +294,7 @@
                                 extendedProps: { codigo: item.Código, centro: item.GFH }
                             };
                         }).filter(e => e !== null);
+                    
                     success(eventos);
                 },
                 eventClick: (info) => {
@@ -287,14 +304,13 @@
             calendar.render();
         }
 
-        // 7. TABS
+        // 7. TABS - AHORA REFRESCA CALENDARIO CORRECTAMENTE
         function showSection(id) {
             document.getElementById('sec-inventario').classList.toggle('hidden', id !== 'inventario');
             document.getElementById('sec-calendario').classList.toggle('hidden', id !== 'calendario');
             if (id === 'calendario') {
                 setTimeout(() => {
-                    if (!calendar) { initCalendar(); }
-                    else { calendar.render(); calendar.refetchEvents(); }
+                    initCalendar(); // Siempre reiniciar con filtros actuales
                 }, 100);
             }
         }
@@ -341,9 +357,31 @@
             location.href = 'index.html';
         }
 
+        // 10. LISTENERS PARA ACTUALIZAR CALENDARIO CUANDO CAMBIAN FILTROS
+        function setupCalendarFilterListeners() {
+            const filtros = ['f_general', 'f_gfh', 'f_calibracion'];
+            
+            filtros.forEach(id => {
+                document.getElementById(id).addEventListener('input', () => {
+                    // Si estamos en la vista de calendario, refrescarlo
+                    if (!document.getElementById('sec-calendario').classList.contains('hidden')) {
+                        initCalendar();
+                    }
+                });
+            });
+            
+            // También para el checkbox (usa 'change' en lugar de 'input')
+            document.getElementById('f_calibracion').addEventListener('change', () => {
+                if (!document.getElementById('sec-calendario').classList.contains('hidden')) {
+                    initCalendar();
+                }
+            });
+        }
+
         // INICIO
         checkUser();
         cargarDatos();
+        setupCalendarFilterListeners();
     </script>
 </body>
 </html>
