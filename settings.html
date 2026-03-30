@@ -476,13 +476,14 @@
 
                 const diffDias = Math.floor((fechaVenc - hoy) / (1000 * 60 * 60 * 24));
 
-                if (diffDias >= 0 && diffDias <= diasAntelacion) {
+                if (diffDias <= diasAntelacion) {
                     proximos.push({
                         codigo: eq['Código'],
                         nombre: eq['Nombre'] || eq['Código'],
                         fechaCal: fechaCal.toLocaleDateString('es-ES'),
                         fechaVenc: fechaVenc.toLocaleDateString('es-ES'),
                         diasRestantes: diffDias
+                        estado: diffDias < 0 ? 'CADUCADO' : `Vence en ${diffDias} días`
                     });
                 }
             }
