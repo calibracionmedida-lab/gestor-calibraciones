@@ -35,17 +35,15 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-usuarios" class="divide-y divide-slate-100 text-sm">
-                        <tr>
-                            <td colspan="4" class="p-8 text-center text-slate-400">
-                                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Cargando usuarios...
-                            </td>
-                        </tr>
+                        <tr><td colspan="4" class="p-8 text-center text-slate-400">
+                            <i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Cargando usuarios...
+                        </td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Formulario de Alta (oculto por defecto) -->
+        <!-- Formulario de Alta -->
         <div id="form-alta" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto mb-8">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-blue-600"><i class="fa-solid fa-user-plus mr-2"></i>Alta de Usuario</h2>
@@ -77,7 +75,7 @@
             </div>
         </div>
 
-        <!-- ===== CONFIGURACIÓN DE ALERTAS ===== -->
+        <!-- CONFIGURACIÓN DE ALERTAS -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-slate-800">
@@ -103,7 +101,29 @@
                 </div>
             </div>
 
-            <!-- Días de antelación -->
+            <!-- Filtro GFH -->
+            <div class="mb-6">
+                <label class="block text-sm font-black text-slate-600 uppercase tracking-wider mb-3">
+                    <i class="fa-solid fa-building mr-2 text-slate-400"></i>Centros (GFH) a vigilar
+                </label>
+                <div id="lista-gfh" class="flex flex-wrap gap-2 mb-3 min-h-[36px]"></div>
+                <div class="flex gap-2">
+                    <input type="text" id="nuevo-gfh" placeholder="Ej: L15  (filtra por 'contiene')"
+                        class="flex-1 p-3 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-amber-400 text-sm"
+                        onkeydown="if(event.key==='Enter') agregarGFH()">
+                    <button onclick="agregarGFH()"
+                        class="px-4 py-2 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-colors text-sm">
+                        <i class="fa-solid fa-plus mr-1"></i>Añadir
+                    </button>
+                    <button onclick="toggleTodosGFH()" id="btn-todos-gfh"
+                        class="px-4 py-2 border border-amber-300 text-amber-700 font-bold rounded-xl hover:bg-amber-50 transition-colors text-sm">
+                        Todos
+                    </button>
+                </div>
+                <p class="text-xs text-slate-400 mt-2 italic">Si no hay ningún filtro activo se vigilan todos los centros</p>
+            </div>
+
+            <!-- Días de antelación + Periodo -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label class="block text-sm font-black text-slate-600 uppercase tracking-wider mb-2">
@@ -117,7 +137,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-black text-slate-600 uppercase tracking-wider mb-2">
-                        <i class="fa-solid fa-calendar-days mr-2 text-slate-400"></i>Periodo de vigencia de calibración
+                        <i class="fa-solid fa-calendar-days mr-2 text-slate-400"></i>Periodo de vigencia por defecto
                     </label>
                     <div class="flex items-center gap-3">
                         <select id="periodo-calibracion"
@@ -132,7 +152,7 @@
                 </div>
             </div>
 
-            <!-- Botones guardar + test -->
+            <!-- Botones -->
             <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
                 <button onclick="guardarConfigAlertas()"
                     class="px-6 py-3 bg-amber-500 text-white font-black rounded-xl hover:bg-amber-600 shadow-lg shadow-amber-100 transition-all active:scale-95">
@@ -144,6 +164,14 @@
                 </button>
             </div>
             <p id="alertas-msg" class="text-sm font-bold mt-3"></p>
+
+            <!-- Resultado previsualización -->
+            <div id="alertas-preview" class="hidden mt-6 border-t border-slate-100 pt-4">
+                <h3 class="text-sm font-black text-slate-600 uppercase tracking-wider mb-3">
+                    <i class="fa-solid fa-list-check mr-2 text-amber-500"></i>Equipos que recibirán alerta
+                </h3>
+                <div id="alertas-preview-tabla" class="overflow-x-auto"></div>
+            </div>
         </div>
 
     </div>
@@ -198,6 +226,7 @@
         const client = supabase.createClient(_URL, _KEY);
 
         let emailsAlertas = [];
+        let filtrosGFH = [];
 
         // ===== AUTH =====
         async function checkAdmin() {
@@ -212,10 +241,7 @@
         async function cargarUsuarios() {
             const tbody = document.getElementById('tabla-usuarios');
             tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Cargando...</td></tr>';
-
-            const { data: profiles, error } = await client
-                .from('profiles').select('*').order('created_at', { ascending: false });
-
+            const { data: profiles, error } = await client.from('profiles').select('*').order('created_at', { ascending: false });
             if (error) {
                 tbody.innerHTML = `<tr><td colspan="4" class="p-5 text-center text-red-600 font-bold bg-red-50">Error: ${error.message}</td></tr>`;
                 return;
@@ -224,7 +250,6 @@
                 tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400 italic">No hay usuarios registrados</td></tr>';
                 return;
             }
-
             tbody.innerHTML = profiles.map(profile => {
                 const rol = profile.role || 'user';
                 const rolClass = rol === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
@@ -307,7 +332,6 @@
             const msg = document.getElementById('edit-user-msg');
             msg.innerText = "Guardando...";
             msg.className = "text-sm font-bold text-center mt-2 text-blue-500";
-
             const { error: errorUpdate } = await client.from('profiles').update({ role: nuevoRol }).eq('id', userId);
             if (errorUpdate) {
                 msg.innerText = "Error al actualizar: " + errorUpdate.message;
@@ -329,24 +353,7 @@
             setTimeout(() => { cerrarModalEditar(); cargarUsuarios(); }, 1000);
         }
 
-        // ===== ALERTAS =====
-        async function cargarConfigAlertas() {
-            const { data, error } = await client
-                .from('alertas_config').select('*').limit(1).single();
-
-            if (error || !data) return;
-
-            emailsAlertas = data.emails || [];
-            document.getElementById('dias-antelacion').value = data.dias_antelacion || 30;
-            document.getElementById('periodo-calibracion').value = data.periodo_calibracion_meses || 12;
-            renderEmailTags();
-
-            const fecha = new Date(data.updated_at).toLocaleDateString('es-ES', {
-                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-            });
-            document.getElementById('alertas-estado').innerText = `Última actualización: ${fecha}`;
-        }
-
+        // ===== ALERTAS — EMAILS =====
         function renderEmailTags() {
             const container = document.getElementById('lista-emails');
             if (emailsAlertas.length === 0) {
@@ -371,10 +378,7 @@
                 setTimeout(() => input.classList.remove('border-red-400'), 1500);
                 return;
             }
-            if (emailsAlertas.includes(email)) {
-                input.value = '';
-                return;
-            }
+            if (emailsAlertas.includes(email)) { input.value = ''; return; }
             emailsAlertas.push(email);
             input.value = '';
             renderEmailTags();
@@ -385,6 +389,69 @@
             renderEmailTags();
         }
 
+        // ===== ALERTAS — GFH =====
+        function renderGFHTags() {
+            const container = document.getElementById('lista-gfh');
+            const btnTodos = document.getElementById('btn-todos-gfh');
+            if (filtrosGFH.length === 0) {
+                container.innerHTML = '<span class="text-sm text-slate-400 italic">Todos los centros</span>';
+                btnTodos.classList.add('bg-amber-500', 'text-white');
+                btnTodos.classList.remove('border-amber-300', 'text-amber-700');
+            } else {
+                btnTodos.classList.remove('bg-amber-500', 'text-white');
+                btnTodos.classList.add('border-amber-300', 'text-amber-700');
+                container.innerHTML = filtrosGFH.map((gfh, i) => `
+                    <span class="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-800 text-sm font-bold px-3 py-1.5 rounded-full">
+                        <i class="fa-solid fa-building text-blue-400 text-xs"></i>
+                        contiene "${gfh}"
+                        <button onclick="eliminarGFH(${i})" class="text-blue-400 hover:text-red-500 transition-colors ml-1">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </span>`).join('');
+            }
+        }
+
+        function agregarGFH() {
+            const input = document.getElementById('nuevo-gfh');
+            const val = input.value.trim().toUpperCase();
+            if (!val) return;
+            if (filtrosGFH.includes(val)) { input.value = ''; return; }
+            filtrosGFH.push(val);
+            input.value = '';
+            renderGFHTags();
+        }
+
+        function eliminarGFH(index) {
+            filtrosGFH.splice(index, 1);
+            renderGFHTags();
+        }
+
+        function toggleTodosGFH() {
+            filtrosGFH = [];
+            renderGFHTags();
+        }
+
+        // ===== ALERTAS — CARGA CONFIG =====
+        async function cargarConfigAlertas() {
+            const { data, error } = await client.from('alertas_config').select('*').limit(1).single();
+            if (error || !data) {
+                renderEmailTags();
+                renderGFHTags();
+                return;
+            }
+            emailsAlertas = data.emails || [];
+            filtrosGFH = data.filtros_gfh || [];
+            document.getElementById('dias-antelacion').value = data.dias_antelacion || 30;
+            document.getElementById('periodo-calibracion').value = data.periodo_calibracion_meses || 12;
+            renderEmailTags();
+            renderGFHTags();
+            const fecha = new Date(data.updated_at).toLocaleDateString('es-ES', {
+                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            document.getElementById('alertas-estado').innerText = `Última actualización: ${fecha}`;
+        }
+
+        // ===== ALERTAS — GUARDAR =====
         async function guardarConfigAlertas() {
             const msg = document.getElementById('alertas-msg');
             const dias = parseInt(document.getElementById('dias-antelacion').value);
@@ -399,13 +466,12 @@
             msg.innerText = "Guardando...";
             msg.className = "text-sm font-bold mt-3 text-blue-500";
 
-            // Obtener el id de la fila existente
             const { data: existing } = await client.from('alertas_config').select('id').limit(1).single();
-
             let error;
             if (existing) {
                 ({ error } = await client.from('alertas_config').update({
                     emails: emailsAlertas,
+                    filtros_gfh: filtrosGFH,
                     dias_antelacion: dias,
                     periodo_calibracion_meses: periodo,
                     updated_at: new Date().toISOString()
@@ -413,6 +479,7 @@
             } else {
                 ({ error } = await client.from('alertas_config').insert({
                     emails: emailsAlertas,
+                    filtros_gfh: filtrosGFH,
                     dias_antelacion: dias,
                     periodo_calibracion_meses: periodo
                 }));
@@ -429,12 +496,16 @@
             }
         }
 
+        // ===== ALERTAS — REVISAR AHORA =====
         async function enviarAlertasAhora() {
             const msg = document.getElementById('alertas-msg');
-            msg.innerText = "⏳ Revisando equipos próximos a vencer...";
-            msg.className = "text-sm font-bold mt-3 text-blue-500";
+            const preview = document.getElementById('alertas-preview');
+            const previewTabla = document.getElementById('alertas-preview-tabla');
 
-            // Obtener config
+            msg.innerText = "⏳ Revisando equipos...";
+            msg.className = "text-sm font-bold mt-3 text-blue-500";
+            preview.classList.add('hidden');
+
             const { data: config } = await client.from('alertas_config').select('*').limit(1).single();
             if (!config || config.emails.length === 0) {
                 msg.innerText = "⚠️ Configura primero los emails destinatarios";
@@ -442,25 +513,41 @@
                 return;
             }
 
-            // Obtener equipos con calibración que tengan fecha
-            const { data: equipos, error } = await client
-                .from('equipos')
-                .select('"Código", "Nombre", "Fecha cal.", "Equipos con calibración"')
-                .eq('"Equipos con calibración"', 'Sí')
-                .not('"Fecha cal."', 'is', null);
+            // Cargar equipos y sus configs de periodicidad
+            const [resEquipos, resConfig] = await Promise.all([
+                client.from('equipos')
+                    .select('"Código", "Nombre", "Fecha cal.", "Equipos con calibración", "GFH"')
+                    .eq('"Equipos con calibración"', 'Sí')
+                    .not('"Fecha cal."', 'is', null),
+                client.from('equipos_config').select('*')
+            ]);
 
-            if (error) {
-                msg.innerText = "Error al leer equipos: " + error.message;
+            if (resEquipos.error) {
+                msg.innerText = "Error al leer equipos: " + resEquipos.error.message;
                 msg.className = "text-sm font-bold mt-3 text-red-500";
                 return;
             }
 
+            // Mapa de periodicidades personalizadas
+            const configMap = {};
+            (resConfig.data || []).forEach(c => { configMap[c.codigo] = c; });
+
+            // Aplicar filtro GFH si hay alguno configurado
+            let equipos = resEquipos.data || [];
+            if (config.filtros_gfh && config.filtros_gfh.length > 0) {
+                equipos = equipos.filter(eq =>
+                    config.filtros_gfh.some(gfh =>
+                        eq['GFH'] && eq['GFH'].toUpperCase().includes(gfh.toUpperCase())
+                    )
+                );
+            }
+
             const hoy = new Date();
             const diasAntelacion = config.dias_antelacion || 30;
-            const periodoMeses = config.periodo_calibracion_meses || 12;
+            const periodoDefault = config.periodo_calibracion_meses || 12;
             const proximos = [];
 
-            for (const eq of equipos || []) {
+            for (const eq of equipos) {
                 if (!eq['Fecha cal.']) continue;
                 const partes = eq['Fecha cal.'].split('/');
                 let fechaCal;
@@ -471,34 +558,67 @@
                 }
                 if (isNaN(fechaCal)) continue;
 
+                // Usar periodicidad personalizada si existe, sino la global
+                const periodoMeses = configMap[eq['Código']]?.periodo_meses || periodoDefault;
                 const fechaVenc = new Date(fechaCal);
                 fechaVenc.setMonth(fechaVenc.getMonth() + periodoMeses);
 
                 const diffDias = Math.floor((fechaVenc - hoy) / (1000 * 60 * 60 * 24));
 
+                // Incluir caducados (diffDias < 0) Y próximos a vencer
                 if (diffDias <= diasAntelacion) {
                     proximos.push({
                         codigo: eq['Código'],
                         nombre: eq['Nombre'] || eq['Código'],
+                        gfh: eq['GFH'] || '-',
                         fechaCal: fechaCal.toLocaleDateString('es-ES'),
                         fechaVenc: fechaVenc.toLocaleDateString('es-ES'),
-                        diasRestantes: diffDias
-                        estado: diffDias < 0 ? 'CADUCADO' : `Vence en ${diffDias} días`
+                        diffDias,
+                        estado: diffDias < 0
+                            ? `<span class="text-red-600 font-black">CADUCADO (${Math.abs(diffDias)} días)</span>`
+                            : `<span class="text-orange-500 font-bold">Vence en ${diffDias} días</span>`
                     });
                 }
             }
 
             if (proximos.length === 0) {
-                msg.innerText = `✅ No hay equipos próximos a vencer en los próximos ${diasAntelacion} días`;
+                msg.innerText = `✅ No hay equipos caducados ni próximos a vencer en los próximos ${diasAntelacion} días`;
                 msg.className = "text-sm font-bold mt-3 text-green-600";
                 return;
             }
 
-            msg.innerText = `📋 ${proximos.length} equipo(s) próximos a vencer. Las alertas automáticas se envían via Edge Function. Configura Resend en Supabase para activar el envío de emails.`;
+            // Ordenar: primero caducados, luego por días restantes
+            proximos.sort((a, b) => a.diffDias - b.diffDias);
+
+            // Mostrar previsualización
+            msg.innerText = `📋 ${proximos.length} equipo(s) requieren atención. El envío automático de emails se activa con la Edge Function de Supabase.`;
             msg.className = "text-sm font-bold mt-3 text-amber-600";
 
-            // Mostrar resumen en consola para verificación
-            console.table(proximos);
+            previewTabla.innerHTML = `
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="p-3 text-xs font-black text-slate-400 uppercase">Código</th>
+                            <th class="p-3 text-xs font-black text-slate-400 uppercase">Nombre</th>
+                            <th class="p-3 text-xs font-black text-slate-400 uppercase">GFH</th>
+                            <th class="p-3 text-xs font-black text-slate-400 uppercase">Última Cal.</th>
+                            <th class="p-3 text-xs font-black text-slate-400 uppercase">Vencimiento</th>
+                            <th class="p-3 text-xs font-black text-slate-400 uppercase">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        ${proximos.map(e => `
+                        <tr class="hover:bg-slate-50">
+                            <td class="p-3 font-mono text-xs text-blue-600">${e.codigo}</td>
+                            <td class="p-3 font-medium text-slate-800">${e.nombre}</td>
+                            <td class="p-3 text-slate-500">${e.gfh}</td>
+                            <td class="p-3 font-mono text-slate-400">${e.fechaCal}</td>
+                            <td class="p-3 font-mono text-slate-600">${e.fechaVenc}</td>
+                            <td class="p-3">${e.estado}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>`;
+            preview.classList.remove('hidden');
         }
 
         // ===== INIT =====
