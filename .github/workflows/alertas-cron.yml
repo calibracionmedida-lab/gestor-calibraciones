@@ -1,0 +1,29 @@
+name: Alertas Calibración Diarias
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Cada día a las 7:00 hora España (6 UTC en invierno)
+  workflow_dispatch:       # También permite ejecutarlo manualmente desde GitHub
+
+jobs:
+  enviar-alertas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar Edge Function de alertas
+        run: |
+          response=$(curl -s -o response.txt -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            https://vefxssymaocbdtuupdwh.supabase.co/functions/v1/enviar-alertas-calibracion)
+          
+          echo "HTTP Status: $response"
+          echo "Respuesta:"
+          cat response.txt
+          
+          if [ "$response" != "200" ]; then
+            echo "❌ Error: la función devolvió HTTP $response"
+            exit 1
+          fi
+          
+          echo "✅ Alertas procesadas correctamente"
