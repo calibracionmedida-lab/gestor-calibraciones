@@ -105,36 +105,57 @@
         </div>
     </main>
 
+    <!-- Modal Edición -->
     <div id="modal-edit" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex justify-end backdrop-blur-sm">
         <div class="bg-white w-full max-w-md h-full p-8 shadow-2xl animate-[slideIn_0.3s_ease-out] flex flex-col">
             <div class="flex justify-between items-center mb-10 border-b border-slate-100 pb-5">
-                <h3 class="text-3xl font-black text-slate-800 tracking-tighter">Ajustar Equipo</h3>
-                <button onclick="closeEdit()" class="text-slate-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-circle-xmark text-3xl"></i></button>
-            </div>
-            <form class="space-y-8 flex-1">
-                <input type="hidden" id="edit-id">
                 <div>
-                    <label class="block text-[11px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Última Calibración Registrada</label>
-                    <input type="text" id="edit-fecha" placeholder="DD/MM/YYYY" class="w-full p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 font-mono text-lg font-bold">
-                    <p class="text-xs text-slate-400 mt-2 italic">* Formato: Día/Mes/Año</p>
+                    <h3 class="text-3xl font-black text-slate-800 tracking-tighter">Ajustar Equipo</h3>
+                    <p id="edit-nombre" class="text-sm text-slate-400 mt-1"></p>
                 </div>
+                <button onclick="closeEdit()" class="text-slate-300 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-circle-xmark text-3xl"></i>
+                </button>
+            </div>
+            <div class="space-y-8 flex-1">
+                <input type="hidden" id="edit-id">
+
+                <!-- Fecha calibración (solo informativa, viene de Mansis) -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Última Calibración (Mansis)</p>
+                    <p id="edit-fecha-display" class="text-lg font-mono font-bold text-slate-700">-</p>
+                    <p class="text-xs text-slate-400 mt-1 italic">Este valor se actualiza automáticamente desde Mansis</p>
+                </div>
+
+                <!-- Periodicidad — se guarda en equipos_config -->
                 <div>
                     <label class="block text-[11px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Periodicidad de Calibración</label>
                     <div class="flex gap-2.5">
-                        <input type="number" id="peri-valor" value="12" class="w-28 p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg font-black bg-white">
+                        <input type="number" id="peri-valor" value="12" min="1"
+                            class="w-28 p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-center text-lg font-black bg-white">
                         <select id="peri-unidad" class="flex-1 p-4 border border-slate-200 rounded-2xl bg-white outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700">
                             <option value="1">Meses</option>
                             <option value="12">Años</option>
                         </select>
                     </div>
                     <p class="text-[10px] text-slate-400 mt-3 bg-slate-100 p-3 rounded-xl italic">
-                        * El sistema calculará la próxima fecha sumando este tiempo a la fecha de la última calibración.
+                        * El sistema calculará la próxima fecha sumando este tiempo a la última calibración de Mansis.
                     </p>
                 </div>
-                <button type="button" onclick="guardarCambios()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all mt-auto active:scale-95">
+
+                <!-- Notas opcionales -->
+                <div>
+                    <label class="block text-[11px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Notas (opcional)</label>
+                    <textarea id="edit-notas" rows="3" placeholder="Observaciones sobre esta calibración..."
+                        class="w-full p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50 text-sm resize-none"></textarea>
+                </div>
+
+                <button type="button" onclick="guardarCambios()"
+                    class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all active:scale-95">
                     Guardar Cambios y Recalcular
                 </button>
-            </form>
+                <p id="edit-msg" class="text-sm font-bold text-center"></p>
+            </div>
         </div>
     </div>
 
@@ -145,14 +166,14 @@
 
         let calendar;
         let filtroAlertas = false;
-        let listadoEquipos = [];
+        let listadoEquipos = [];       // datos de equipos (Mansis)
+        let configEquipos = {};        // mapa codigo → {periodo_meses, notas} (equipos_config)
 
-        // 1. ACCESO
+        // 1. AUTH
         async function checkUser() {
             const { data: { user }, error } = await client.auth.getUser();
             if (error || !user) { window.location.href = 'index.html'; return; }
             const meta = user.user_metadata || user.raw_user_meta_data || {};
-            console.log("Sesión:", user.email, "| Rol:", meta.role);
             if (meta.role === 'admin') {
                 document.getElementById('menu-admin').classList.remove('hidden');
             }
@@ -161,39 +182,57 @@
         // 2. CÁLCULO DE FECHAS
         function calcularProxima(fechaStr, mesesTotales = 12) {
             if (!fechaStr || fechaStr === '-' || fechaStr === 'No') {
-                return { fecha: 'Pendiente', clase: 'text-slate-300 italic font-medium', caducado: false, obj: null };
+                return { fecha: 'Pendiente', clase: 'text-slate-300 italic font-medium', caducado: false, proximo: false, obj: null };
             }
             try {
                 const p = fechaStr.split('/');
                 const fecha = new Date(p[2], p[1]-1, p[0]);
                 fecha.setMonth(fecha.getMonth() + parseInt(mesesTotales));
                 const hoy = new Date();
-                const diffMeses = (fecha - hoy) / (1000 * 60 * 60 * 24 * 30);
+                const diffDias = (fecha - hoy) / (1000 * 60 * 60 * 24);
                 let clase = 'text-green-600 font-bold';
                 let esPasado = false;
-                if (fecha < hoy) { clase = 'animate-text-red'; esPasado = true; }
-                else if (diffMeses < 2) { clase = 'text-orange-500 font-bold'; }
-                return { fecha: fecha.toLocaleDateString('es-ES'), clase, caducado: esPasado, obj: fecha };
+                let esProximo = false;
+                if (fecha < hoy) {
+                    clase = 'animate-text-red';
+                    esPasado = true;
+                } else if (diffDias <= 60) {
+                    clase = 'text-orange-500 font-bold';
+                    esProximo = true;
+                }
+                return { fecha: fecha.toLocaleDateString('es-ES'), clase, caducado: esPasado, proximo: esProximo, obj: fecha };
             } catch(e) {
-                return { fecha: 'Error Fecha', clase: 'text-red-500 font-bold', caducado: false, obj: null };
+                return { fecha: 'Error Fecha', clase: 'text-red-500 font-bold', caducado: false, proximo: false, obj: null };
             }
         }
 
-        // 3. CARGA DE DATOS — solo hace fetch, luego llama a renderTabla()
+        // 3. CARGA DE DATOS — equipos + equipos_config juntos
         async function cargarDatos() {
             const body = document.getElementById('tabla-body');
             body.innerHTML = '<tr><td colspan="5" class="p-10 text-center"><i class="fa-solid fa-sync fa-spin text-blue-500 text-2xl"></i></td></tr>';
-            const { data, error } = await client.from('equipos').select('*');
-            if (error) {
-                body.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-red-600 font-bold bg-red-50">Error: ${error.message}</td></tr>`;
+
+            // Cargar en paralelo
+            const [resEquipos, resConfig] = await Promise.all([
+                client.from('equipos').select('*'),
+                client.from('equipos_config').select('*')
+            ]);
+
+            if (resEquipos.error) {
+                body.innerHTML = `<tr><td colspan="5" class="p-5 text-center text-red-600 font-bold bg-red-50">Error: ${resEquipos.error.message}</td></tr>`;
                 return;
             }
-            listadoEquipos = data;
-            console.log('Datos cargados:', listadoEquipos.length, 'equipos');
+
+            // Construir mapa de config por código
+            configEquipos = {};
+            (resConfig.data || []).forEach(c => {
+                configEquipos[c.codigo] = c;
+            });
+
+            listadoEquipos = resEquipos.data;
             renderTabla();
         }
 
-        // 4. RENDER — solo filtra y pinta, nunca hace fetch
+        // 4. RENDER
         function renderTabla() {
             const body = document.getElementById('tabla-body');
             if (listadoEquipos.length === 0) return;
@@ -202,18 +241,19 @@
             const f_gfh = document.getElementById('f_gfh').value;
             const f_cal = document.getElementById('f_calibracion').checked;
 
-            console.log(`[render] gen="${f_gen}" gfh="${f_gfh}" cal=${f_cal} alertas=${filtroAlertas}`);
-
             const filtrados = listadoEquipos.filter(item => {
-                const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
-                const okBusqueda = !f_gen || (item.Nombre && item.Nombre.toLowerCase().includes(f_gen)) || (item.Código && item.Código.toLowerCase().includes(f_gen));
-                const okCentro   = !f_gfh || (item.GFH && item.GFH.includes(f_gfh));
-                const okAlerta   = !filtroAlertas || prox.caducado;
-                const okCalib    = !f_cal || item['Equipos con calibración'] === 'Sí';
+                const config = configEquipos[item['Código']] || {};
+                const periodo = config.periodo_meses || 12;
+                const prox = calcularProxima(item['Fecha cal.'], periodo);
+                const okBusqueda = !f_gen ||
+                    (item['Nombre'] && item['Nombre'].toLowerCase().includes(f_gen)) ||
+                    (item['Código'] && item['Código'].toLowerCase().includes(f_gen)) ||
+                    (item['GFH'] && item['GFH'].toLowerCase().includes(f_gen));
+                const okCentro  = !f_gfh || (item['GFH'] && item['GFH'].includes(f_gfh));
+                const okAlerta  = !filtroAlertas || prox.caducado || prox.proximo;
+                const okCalib   = !f_cal || item['Equipos con calibración'] === 'Sí';
                 return okBusqueda && okCentro && okAlerta && okCalib;
             });
-
-            console.log(`[render] Resultado: ${filtrados.length} equipos`);
 
             if (filtrados.length === 0) {
                 body.innerHTML = '<tr><td colspan="5" class="p-10 text-center text-slate-400 italic">No se han encontrado equipos con estos filtros.</td></tr>';
@@ -221,16 +261,22 @@
             }
 
             body.innerHTML = filtrados.map(item => {
-                const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
+                const config = configEquipos[item['Código']] || {};
+                const periodo = config.periodo_meses || 12;
+                const prox = calcularProxima(item['Fecha cal.'], periodo);
+                const periodoTexto = periodo % 12 === 0 ? `${periodo/12} año(s)` : `${periodo} mes(es)`;
                 return `
                 <tr class="hover:bg-blue-50/40 transition-colors group">
                     <td class="p-4">
-                        <div class="font-bold text-slate-800 text-base">${item.Nombre}</div>
-                        <div class="text-[10px] font-mono text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded inline-block mt-0.5">${item.Código}</div>
+                        <div class="font-bold text-slate-800 text-base">${item['Nombre'] || '-'}</div>
+                        <div class="text-[10px] font-mono text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded inline-block mt-0.5">${item['Código']}</div>
                     </td>
-                    <td class="p-4 text-sm text-slate-600 font-medium">${item.GFH || '-'}</td>
+                    <td class="p-4 text-sm text-slate-600 font-medium">${item['GFH'] || '-'}</td>
                     <td class="p-4 text-xs font-mono text-slate-400 text-center">${item['Fecha cal.'] || '-'}</td>
-                    <td class="p-4 text-sm"><span class="${prox.clase}">${prox.fecha}</span></td>
+                    <td class="p-4 text-sm">
+                        <span class="${prox.clase}">${prox.fecha}</span>
+                        <div class="text-[10px] text-slate-400 mt-0.5">cada ${periodoTexto}</div>
+                    </td>
                     <td class="p-4 text-center">
                         <button onclick='openEdit(${JSON.stringify(item)})' class="text-slate-300 hover:text-blue-600 p-2.5 rounded-xl hover:bg-blue-100 transition-all active:scale-95">
                             <i class="fa-solid fa-pen-to-square"></i>
@@ -240,7 +286,7 @@
             }).join('');
         }
 
-        // 5. BOTÓN REQUIEREN CALIBRACIÓN
+        // 5. BOTÓN REQUIEREN CALIBRACIÓN (incluye próximos + caducados)
         function toggleAlertas() {
             filtroAlertas = !filtroAlertas;
             const btn = document.getElementById('btn-alertas');
@@ -254,96 +300,113 @@
             renderTabla();
         }
 
-        // 6. CALENDARIO - AHORA CON FILTROS FUNCIONANDO
+        // 6. CALENDARIO
         function initCalendar() {
             const container = document.getElementById('calendar-container');
             if (calendar) calendar.destroy();
-            
-            // Obtener valores actuales de los filtros
             const f_gen = document.getElementById('f_general').value.toLowerCase().trim();
             const f_gfh = document.getElementById('f_gfh').value;
             const f_cal = document.getElementById('f_calibracion').checked;
-            
+
             calendar = new FullCalendar.Calendar(container, {
                 initialView: 'dayGridMonth',
                 locale: 'es',
                 firstDay: 1,
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
-                themeSystem: 'standard',
-                events: (info, success, failure) => {
-                    // Usar listadoEquipos (ya cargado) y aplicar filtros
-                    let eventos = listadoEquipos
+                events: (info, success) => {
+                    const eventos = listadoEquipos
                         .filter(item => {
-                            // Aplicar mismos filtros que la tabla
-                            const okBusqueda = !f_gen || 
-                                (item.Nombre && item.Nombre.toLowerCase().includes(f_gen)) || 
-                                (item.Código && item.Código.toLowerCase().includes(f_gen));
-                            const okCentro = !f_gfh || (item.GFH && item.GFH.includes(f_gfh));
-                            const okCalib = !f_cal || item['Equipos con calibración'] === 'Sí';
-                            
-                            return okBusqueda && okCentro && okCalib;
+                            const okBusqueda = !f_gen ||
+                                (item['Nombre'] && item['Nombre'].toLowerCase().includes(f_gen)) ||
+                                (item['Código'] && item['Código'].toLowerCase().includes(f_gen));
+                            const okCentro = !f_gfh || (item['GFH'] && item['GFH'].includes(f_gfh));
+                            const okCalib  = !f_cal || item['Equipos con calibración'] === 'Sí';
+                            return okBusqueda && okCentro && okCalib && item['Equipos con calibración'] === 'Sí';
                         })
-                        .filter(item => item['Equipos con calibración'] === 'Sí') // Solo con calibración para calendario
                         .map(item => {
-                            const prox = calcularProxima(item['Fecha cal.'], item.periodicidad || 12);
+                            const config = configEquipos[item['Código']] || {};
+                            const prox = calcularProxima(item['Fecha cal.'], config.periodo_meses || 12);
                             if (!prox.obj) return null;
                             return {
-                                title: item.Nombre + " (" + item.Código + ")",
+                                title: `${item['Nombre']} (${item['Código']})`,
                                 start: prox.obj.toISOString().split('T')[0],
-                                color: prox.caducado ? '#ef4444' : '#10b981',
-                                extendedProps: { codigo: item.Código, centro: item.GFH }
+                                color: prox.caducado ? '#ef4444' : prox.proximo ? '#f97316' : '#10b981',
+                                extendedProps: { codigo: item['Código'], centro: item['GFH'] }
                             };
-                        }).filter(e => e !== null);
-                    
+                        }).filter(Boolean);
                     success(eventos);
                 },
                 eventClick: (info) => {
-                    alert("Equipo: " + info.event.title + "\nCódigo: " + info.event.extendedProps.codigo + "\nCentro: " + info.event.extendedProps.centro);
+                    alert(`Equipo: ${info.event.title}\nCódigo: ${info.event.extendedProps.codigo}\nCentro: ${info.event.extendedProps.centro}`);
                 }
             });
             calendar.render();
         }
 
-        // 7. TABS - AHORA REFRESCA CALENDARIO CORRECTAMENTE
+        // 7. TABS
         function showSection(id) {
             document.getElementById('sec-inventario').classList.toggle('hidden', id !== 'inventario');
             document.getElementById('sec-calendario').classList.toggle('hidden', id !== 'calendario');
-            if (id === 'calendario') {
-                setTimeout(() => {
-                    initCalendar(); // Siempre reiniciar con filtros actuales
-                }, 100);
-            }
+            if (id === 'calendario') setTimeout(() => initCalendar(), 100);
         }
 
-        // 8. MODAL EDICIÓN
+        // 8. MODAL EDICIÓN — lee/escribe en equipos_config, no en equipos
         function openEdit(item) {
-            document.getElementById('edit-id').value = item.Código;
-            document.getElementById('edit-fecha').value = item['Fecha cal.'] || '';
-            const p = item.periodicidad || 12;
-            if (p % 12 === 0) {
-                document.getElementById('peri-valor').value = p / 12;
-                document.getElementById('peri-unidad').value = "12";
+            const codigo = item['Código'];
+            const config = configEquipos[codigo] || {};
+            const periodo = config.periodo_meses || 12;
+
+            document.getElementById('edit-id').value = codigo;
+            document.getElementById('edit-nombre').innerText = item['Nombre'] || codigo;
+            document.getElementById('edit-fecha-display').innerText = item['Fecha cal.'] || 'Sin fecha registrada';
+            document.getElementById('edit-notas').value = config.notas || '';
+            document.getElementById('edit-msg').innerText = '';
+
+            if (periodo % 12 === 0) {
+                document.getElementById('peri-valor').value = periodo / 12;
+                document.getElementById('peri-unidad').value = '12';
             } else {
-                document.getElementById('peri-valor').value = p;
-                document.getElementById('peri-unidad').value = "1";
+                document.getElementById('peri-valor').value = periodo;
+                document.getElementById('peri-unidad').value = '1';
             }
+
             document.getElementById('modal-edit').classList.remove('hidden');
         }
 
         async function guardarCambios() {
-            const id     = document.getElementById('edit-id').value;
-            const fecha  = document.getElementById('edit-fecha').value;
-            const valor  = document.getElementById('peri-valor').value;
-            const unidad = document.getElementById('peri-unidad').value;
-            const mesesTotales = parseInt(valor) * parseInt(unidad);
-            const { error } = await client.from('equipos')
-                .update({ 'Fecha cal.': fecha, 'periodicidad': mesesTotales })
-                .eq('Código', id);
+            const codigo      = document.getElementById('edit-id').value;
+            const valor       = parseInt(document.getElementById('peri-valor').value);
+            const unidad      = parseInt(document.getElementById('peri-unidad').value);
+            const mesesTotales = valor * unidad;
+            const notas       = document.getElementById('edit-notas').value.trim();
+            const msg         = document.getElementById('edit-msg');
+
+            msg.innerText = 'Guardando...';
+            msg.className = 'text-sm font-bold text-center text-blue-500';
+
+            const { data: { user } } = await client.auth.getUser();
+
+            // Upsert en equipos_config (no toca la tabla equipos)
+            const { error } = await client.from('equipos_config').upsert({
+                codigo,
+                periodo_meses: mesesTotales,
+                notas,
+                updated_at: new Date().toISOString(),
+                updated_by: user?.id || null
+            }, { onConflict: 'codigo' });
+
             if (error) {
-                alert("Error al guardar: " + error.message);
+                msg.innerText = 'Error al guardar: ' + error.message;
+                msg.className = 'text-sm font-bold text-center text-red-500';
             } else {
-                closeEdit();
-                await cargarDatos();
+                msg.innerText = '✅ Guardado correctamente';
+                msg.className = 'text-sm font-bold text-center text-green-600';
+                // Actualizar mapa local sin recargar todo
+                configEquipos[codigo] = { codigo, periodo_meses: mesesTotales, notas };
+                setTimeout(() => {
+                    closeEdit();
+                    renderTabla();
+                }, 800);
             }
         }
 
@@ -357,24 +420,12 @@
             location.href = 'index.html';
         }
 
-        // 10. LISTENERS PARA ACTUALIZAR CALENDARIO CUANDO CAMBIAN FILTROS
+        // 10. LISTENERS CALENDARIO
         function setupCalendarFilterListeners() {
-            const filtros = ['f_general', 'f_gfh', 'f_calibracion'];
-            
-            filtros.forEach(id => {
-                document.getElementById(id).addEventListener('input', () => {
-                    // Si estamos en la vista de calendario, refrescarlo
-                    if (!document.getElementById('sec-calendario').classList.contains('hidden')) {
-                        initCalendar();
-                    }
+            ['f_general', 'f_gfh', 'f_calibracion'].forEach(id => {
+                document.getElementById(id).addEventListener('change', () => {
+                    if (!document.getElementById('sec-calendario').classList.contains('hidden')) initCalendar();
                 });
-            });
-            
-            // También para el checkbox (usa 'change' en lugar de 'input')
-            document.getElementById('f_calibracion').addEventListener('change', () => {
-                if (!document.getElementById('sec-calendario').classList.contains('hidden')) {
-                    initCalendar();
-                }
             });
         }
 
