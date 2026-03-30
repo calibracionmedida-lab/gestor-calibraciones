@@ -24,7 +24,6 @@
                     <i class="fa-solid fa-plus mr-2"></i>Nuevo Usuario
                 </button>
             </div>
-            
             <div id="lista-usuarios" class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead class="bg-slate-50 border-b border-slate-200">
@@ -47,7 +46,7 @@
         </div>
 
         <!-- Formulario de Alta (oculto por defecto) -->
-        <div id="form-alta" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto">
+        <div id="form-alta" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-md mx-auto mb-8">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-blue-600"><i class="fa-solid fa-user-plus mr-2"></i>Alta de Usuario</h2>
                 <button onclick="ocultarFormularioAlta()" class="text-slate-400 hover:text-slate-600">
@@ -77,26 +76,93 @@
                 <p id="u_msg" class="text-sm font-bold text-center mt-2"></p>
             </div>
         </div>
+
+        <!-- ===== CONFIGURACIÓN DE ALERTAS ===== -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-slate-800">
+                    <i class="fa-solid fa-bell mr-2 text-amber-500"></i>Configuración de Alertas de Calibración
+                </h2>
+                <span id="alertas-estado" class="text-xs font-bold text-slate-400"></span>
+            </div>
+
+            <!-- Emails destinatarios -->
+            <div class="mb-6">
+                <label class="block text-sm font-black text-slate-600 uppercase tracking-wider mb-3">
+                    <i class="fa-solid fa-envelope mr-2 text-slate-400"></i>Emails que recibirán las alertas
+                </label>
+                <div id="lista-emails" class="flex flex-wrap gap-2 mb-3 min-h-[36px]"></div>
+                <div class="flex gap-2">
+                    <input type="email" id="nuevo-email" placeholder="nuevo@email.com"
+                        class="flex-1 p-3 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-amber-400 text-sm"
+                        onkeydown="if(event.key==='Enter') agregarEmail()">
+                    <button onclick="agregarEmail()"
+                        class="px-4 py-2 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-colors text-sm">
+                        <i class="fa-solid fa-plus mr-1"></i>Añadir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Días de antelación -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-black text-slate-600 uppercase tracking-wider mb-2">
+                        <i class="fa-solid fa-clock mr-2 text-slate-400"></i>Avisar con X días de antelación
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <input type="number" id="dias-antelacion" min="1" max="365" value="30"
+                            class="w-28 p-3 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-amber-400 text-center text-lg font-bold">
+                        <span class="text-slate-500 font-medium">días antes del vencimiento</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-black text-slate-600 uppercase tracking-wider mb-2">
+                        <i class="fa-solid fa-calendar-days mr-2 text-slate-400"></i>Periodo de vigencia de calibración
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <select id="periodo-calibracion"
+                            class="p-3 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-amber-400 font-bold text-slate-700">
+                            <option value="6">6 meses</option>
+                            <option value="12" selected>12 meses (1 año)</option>
+                            <option value="24">24 meses (2 años)</option>
+                            <option value="36">36 meses (3 años)</option>
+                        </select>
+                        <span class="text-slate-500 font-medium">desde la última calibración</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones guardar + test -->
+            <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
+                <button onclick="guardarConfigAlertas()"
+                    class="px-6 py-3 bg-amber-500 text-white font-black rounded-xl hover:bg-amber-600 shadow-lg shadow-amber-100 transition-all active:scale-95">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i>Guardar Configuración
+                </button>
+                <button onclick="enviarAlertasAhora()"
+                    class="px-6 py-3 bg-slate-700 text-white font-black rounded-xl hover:bg-slate-800 transition-all active:scale-95">
+                    <i class="fa-solid fa-paper-plane mr-2"></i>Revisar y Enviar Alertas Ahora
+                </button>
+            </div>
+            <p id="alertas-msg" class="text-sm font-bold mt-3"></p>
+        </div>
+
     </div>
 
     <!-- Modal Editar Usuario -->
     <div id="modal-editar" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+        <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl">
             <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
                 <h3 class="text-2xl font-black text-slate-800">Editar Usuario</h3>
                 <button onclick="cerrarModalEditar()" class="text-slate-300 hover:text-red-500 transition-colors">
                     <i class="fa-solid fa-circle-xmark text-2xl"></i>
                 </button>
             </div>
-            
             <div class="space-y-4">
                 <input type="hidden" id="edit-user-id">
-                
                 <div>
                     <label class="block text-xs font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Email</label>
                     <input type="text" id="edit-user-email" readonly class="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-600 font-medium cursor-not-allowed">
                 </div>
-                
                 <div>
                     <label class="block text-xs font-black text-slate-400 uppercase mb-1 ml-1 tracking-wider">Rol</label>
                     <select id="edit-user-rol" class="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700 bg-white">
@@ -104,7 +170,6 @@
                         <option value="admin">Administrador (Acceso total)</option>
                     </select>
                 </div>
-                
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" id="edit-user-reset-pass" class="w-5 h-5 accent-amber-500 cursor-pointer">
@@ -114,7 +179,6 @@
                         </div>
                     </label>
                 </div>
-                
                 <div class="flex gap-3 pt-4">
                     <button onclick="guardarCambiosUsuario()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-black uppercase tracking-wider hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95">
                         Guardar Cambios
@@ -123,7 +187,6 @@
                         Cancelar
                     </button>
                 </div>
-                
                 <p id="edit-user-msg" class="text-sm font-bold text-center mt-2"></p>
             </div>
         </div>
@@ -134,37 +197,29 @@
         const _KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlZnhzc3ltYW9jYmR0dXVwZHdoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDg4NDcsImV4cCI6MjA5MDAyNDg0N30.inKq_vCajv8xxTzCDQYaFEMOckUWJZF0plgCBA4YPEo';
         const client = supabase.createClient(_URL, _KEY);
 
-        // Verificar que sea admin
+        let emailsAlertas = [];
+
+        // ===== AUTH =====
         async function checkAdmin() {
             const { data: { user } } = await client.auth.getUser();
-            if (!user) {
-                window.location.href = 'index.html';
-                return false;
-            }
+            if (!user) { window.location.href = 'index.html'; return false; }
             const meta = user.user_metadata || {};
-            if (meta.role !== 'admin') {
-                window.location.href = 'dashboard.html';
-                return false;
-            }
+            if (meta.role !== 'admin') { window.location.href = 'dashboard.html'; return false; }
             return true;
         }
 
-        // Cargar lista de usuarios desde tabla 'profiles'
+        // ===== USUARIOS =====
         async function cargarUsuarios() {
             const tbody = document.getElementById('tabla-usuarios');
-            tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Cargando usuarios...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Cargando...</td></tr>';
 
-            // Obtener usuarios desde tabla profiles (accesible con anon key + RLS)
             const { data: profiles, error } = await client
-                .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
+                .from('profiles').select('*').order('created_at', { ascending: false });
 
             if (error) {
                 tbody.innerHTML = `<tr><td colspan="4" class="p-5 text-center text-red-600 font-bold bg-red-50">Error: ${error.message}</td></tr>`;
                 return;
             }
-
             if (!profiles || profiles.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400 italic">No hay usuarios registrados</td></tr>';
                 return;
@@ -174,19 +229,16 @@
                 const rol = profile.role || 'user';
                 const rolClass = rol === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700';
                 const rolText = rol === 'admin' ? 'Administrador' : 'Técnico';
-                const estado = profile.email_confirmed ? 
-                    '<span class="text-green-600 font-bold text-xs"><i class="fa-solid fa-check-circle mr-1"></i>Activo</span>' : 
+                const estado = profile.email_confirmed ?
+                    '<span class="text-green-600 font-bold text-xs"><i class="fa-solid fa-check-circle mr-1"></i>Activo</span>' :
                     '<span class="text-amber-600 font-bold text-xs"><i class="fa-solid fa-clock mr-1"></i>Pendiente</span>';
-
                 return `
                 <tr class="hover:bg-slate-50 transition-colors">
                     <td class="p-4 font-medium text-slate-800">${profile.email}</td>
-                    <td class="p-4">
-                        <span class="px-3 py-1 rounded-full text-xs font-bold ${rolClass}">${rolText}</span>
-                    </td>
+                    <td class="p-4"><span class="px-3 py-1 rounded-full text-xs font-bold ${rolClass}">${rolText}</span></td>
                     <td class="p-4 text-center">${estado}</td>
                     <td class="p-4 text-center">
-                        <button onclick='abrirEditarUsuario(${JSON.stringify(profile)})' class="text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-all" title="Editar usuario">
+                        <button onclick='abrirEditarUsuario(${JSON.stringify(profile)})' class="text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-all">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
                     </td>
@@ -194,7 +246,6 @@
             }).join('');
         }
 
-        // Mostrar/ocultar formulario de alta
         function mostrarFormularioAlta() {
             document.getElementById('form-alta').classList.remove('hidden');
             document.getElementById('u_email').focus();
@@ -207,31 +258,22 @@
             document.getElementById('u_msg').innerText = '';
         }
 
-        // Crear usuario
         async function crearUsuario() {
             const email = document.getElementById('u_email').value.trim();
             const pass = document.getElementById('u_pass').value;
             const rol = document.getElementById('u_rol').value;
             const msg = document.getElementById('u_msg');
-
             if (!email || !pass) {
                 msg.innerText = "Completa todos los campos";
                 msg.className = "text-sm font-bold text-center mt-2 text-red-500";
                 return;
             }
-
             msg.innerText = "Registrando...";
             msg.className = "text-sm font-bold text-center mt-2 text-blue-500";
-
-            const { data, error } = await client.auth.signUp({
-                email: email,
-                password: pass,
-                options: { 
-                    data: { role: rol },
-                    emailRedirectTo: window.location.origin + '/dashboard.html'
-                }
+            const { error } = await client.auth.signUp({
+                email, password: pass,
+                options: { data: { role: rol }, emailRedirectTo: window.location.origin + '/dashboard.html' }
             });
-
             if (error) {
                 msg.innerText = "Error: " + error.message;
                 msg.className = "text-sm font-bold text-center mt-2 text-red-500";
@@ -240,22 +282,16 @@
                 msg.className = "text-sm font-bold text-center mt-2 text-green-600";
                 document.getElementById('u_email').value = '';
                 document.getElementById('u_pass').value = '';
-                
-                setTimeout(() => {
-                    ocultarFormularioAlta();
-                    cargarUsuarios();
-                }, 1500);
+                setTimeout(() => { ocultarFormularioAlta(); cargarUsuarios(); }, 1500);
             }
         }
 
-        // Abrir modal editar
         function abrirEditarUsuario(profile) {
             document.getElementById('edit-user-id').value = profile.id;
             document.getElementById('edit-user-email').value = profile.email;
             document.getElementById('edit-user-rol').value = profile.role || 'user';
             document.getElementById('edit-user-reset-pass').checked = false;
             document.getElementById('edit-user-msg').innerText = '';
-            
             document.getElementById('modal-editar').classList.remove('hidden');
         }
 
@@ -263,56 +299,213 @@
             document.getElementById('modal-editar').classList.add('hidden');
         }
 
-        // Guardar cambios usuario
         async function guardarCambiosUsuario() {
             const userId = document.getElementById('edit-user-id').value;
             const nuevoRol = document.getElementById('edit-user-rol').value;
             const resetPass = document.getElementById('edit-user-reset-pass').checked;
             const email = document.getElementById('edit-user-email').value;
             const msg = document.getElementById('edit-user-msg');
-
             msg.innerText = "Guardando...";
             msg.className = "text-sm font-bold text-center mt-2 text-blue-500";
 
-            // Actualizar rol en tabla profiles
-            const { error: errorUpdate } = await client
-                .from('profiles')
-                .update({ role: nuevoRol })
-                .eq('id', userId);
-
+            const { error: errorUpdate } = await client.from('profiles').update({ role: nuevoRol }).eq('id', userId);
             if (errorUpdate) {
                 msg.innerText = "Error al actualizar: " + errorUpdate.message;
                 msg.className = "text-sm font-bold text-center mt-2 text-red-500";
                 return;
             }
-
-            // Si se marcó resetear contraseña, enviar email de recuperación
             if (resetPass) {
                 const { error: errorReset } = await client.auth.resetPasswordForEmail(email, {
                     redirectTo: window.location.origin + '/reset-password.html'
                 });
-                
                 if (errorReset) {
                     msg.innerText = "Rol actualizado, pero error al resetear: " + errorReset.message;
                     msg.className = "text-sm font-bold text-center mt-2 text-amber-500";
                     return;
                 }
             }
-
             msg.innerText = resetPass ? "Cambios guardados y email de reset enviado" : "Cambios guardados correctamente";
             msg.className = "text-sm font-bold text-center mt-2 text-green-600";
-
-            setTimeout(() => {
-                cerrarModalEditar();
-                cargarUsuarios();
-            }, 1000);
+            setTimeout(() => { cerrarModalEditar(); cargarUsuarios(); }, 1000);
         }
 
-        // Inicializar
+        // ===== ALERTAS =====
+        async function cargarConfigAlertas() {
+            const { data, error } = await client
+                .from('alertas_config').select('*').limit(1).single();
+
+            if (error || !data) return;
+
+            emailsAlertas = data.emails || [];
+            document.getElementById('dias-antelacion').value = data.dias_antelacion || 30;
+            document.getElementById('periodo-calibracion').value = data.periodo_calibracion_meses || 12;
+            renderEmailTags();
+
+            const fecha = new Date(data.updated_at).toLocaleDateString('es-ES', {
+                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            document.getElementById('alertas-estado').innerText = `Última actualización: ${fecha}`;
+        }
+
+        function renderEmailTags() {
+            const container = document.getElementById('lista-emails');
+            if (emailsAlertas.length === 0) {
+                container.innerHTML = '<span class="text-sm text-slate-400 italic">Sin destinatarios configurados</span>';
+                return;
+            }
+            container.innerHTML = emailsAlertas.map((email, i) => `
+                <span class="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-sm font-bold px-3 py-1.5 rounded-full">
+                    <i class="fa-solid fa-envelope text-amber-400 text-xs"></i>
+                    ${email}
+                    <button onclick="eliminarEmail(${i})" class="text-amber-400 hover:text-red-500 transition-colors ml-1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </span>`).join('');
+        }
+
+        function agregarEmail() {
+            const input = document.getElementById('nuevo-email');
+            const email = input.value.trim().toLowerCase();
+            if (!email || !email.includes('@')) {
+                input.classList.add('border-red-400');
+                setTimeout(() => input.classList.remove('border-red-400'), 1500);
+                return;
+            }
+            if (emailsAlertas.includes(email)) {
+                input.value = '';
+                return;
+            }
+            emailsAlertas.push(email);
+            input.value = '';
+            renderEmailTags();
+        }
+
+        function eliminarEmail(index) {
+            emailsAlertas.splice(index, 1);
+            renderEmailTags();
+        }
+
+        async function guardarConfigAlertas() {
+            const msg = document.getElementById('alertas-msg');
+            const dias = parseInt(document.getElementById('dias-antelacion').value);
+            const periodo = parseInt(document.getElementById('periodo-calibracion').value);
+
+            if (emailsAlertas.length === 0) {
+                msg.innerText = "⚠️ Añade al menos un email destinatario";
+                msg.className = "text-sm font-bold mt-3 text-amber-600";
+                return;
+            }
+
+            msg.innerText = "Guardando...";
+            msg.className = "text-sm font-bold mt-3 text-blue-500";
+
+            // Obtener el id de la fila existente
+            const { data: existing } = await client.from('alertas_config').select('id').limit(1).single();
+
+            let error;
+            if (existing) {
+                ({ error } = await client.from('alertas_config').update({
+                    emails: emailsAlertas,
+                    dias_antelacion: dias,
+                    periodo_calibracion_meses: periodo,
+                    updated_at: new Date().toISOString()
+                }).eq('id', existing.id));
+            } else {
+                ({ error } = await client.from('alertas_config').insert({
+                    emails: emailsAlertas,
+                    dias_antelacion: dias,
+                    periodo_calibracion_meses: periodo
+                }));
+            }
+
+            if (error) {
+                msg.innerText = "Error al guardar: " + error.message;
+                msg.className = "text-sm font-bold mt-3 text-red-500";
+            } else {
+                msg.innerText = "✅ Configuración guardada correctamente";
+                msg.className = "text-sm font-bold mt-3 text-green-600";
+                cargarConfigAlertas();
+                setTimeout(() => msg.innerText = '', 3000);
+            }
+        }
+
+        async function enviarAlertasAhora() {
+            const msg = document.getElementById('alertas-msg');
+            msg.innerText = "⏳ Revisando equipos próximos a vencer...";
+            msg.className = "text-sm font-bold mt-3 text-blue-500";
+
+            // Obtener config
+            const { data: config } = await client.from('alertas_config').select('*').limit(1).single();
+            if (!config || config.emails.length === 0) {
+                msg.innerText = "⚠️ Configura primero los emails destinatarios";
+                msg.className = "text-sm font-bold mt-3 text-amber-600";
+                return;
+            }
+
+            // Obtener equipos con calibración que tengan fecha
+            const { data: equipos, error } = await client
+                .from('equipos')
+                .select('"Código", "Nombre", "Fecha cal.", "Equipos con calibración"')
+                .eq('"Equipos con calibración"', 'Sí')
+                .not('"Fecha cal."', 'is', null);
+
+            if (error) {
+                msg.innerText = "Error al leer equipos: " + error.message;
+                msg.className = "text-sm font-bold mt-3 text-red-500";
+                return;
+            }
+
+            const hoy = new Date();
+            const diasAntelacion = config.dias_antelacion || 30;
+            const periodoMeses = config.periodo_calibracion_meses || 12;
+            const proximos = [];
+
+            for (const eq of equipos || []) {
+                if (!eq['Fecha cal.']) continue;
+                const partes = eq['Fecha cal.'].split('/');
+                let fechaCal;
+                if (partes.length === 3) {
+                    fechaCal = new Date(`${partes[2]}-${partes[1].padStart(2,'0')}-${partes[0].padStart(2,'0')}`);
+                } else {
+                    fechaCal = new Date(eq['Fecha cal.']);
+                }
+                if (isNaN(fechaCal)) continue;
+
+                const fechaVenc = new Date(fechaCal);
+                fechaVenc.setMonth(fechaVenc.getMonth() + periodoMeses);
+
+                const diffDias = Math.floor((fechaVenc - hoy) / (1000 * 60 * 60 * 24));
+
+                if (diffDias >= 0 && diffDias <= diasAntelacion) {
+                    proximos.push({
+                        codigo: eq['Código'],
+                        nombre: eq['Nombre'] || eq['Código'],
+                        fechaCal: fechaCal.toLocaleDateString('es-ES'),
+                        fechaVenc: fechaVenc.toLocaleDateString('es-ES'),
+                        diasRestantes: diffDias
+                    });
+                }
+            }
+
+            if (proximos.length === 0) {
+                msg.innerText = `✅ No hay equipos próximos a vencer en los próximos ${diasAntelacion} días`;
+                msg.className = "text-sm font-bold mt-3 text-green-600";
+                return;
+            }
+
+            msg.innerText = `📋 ${proximos.length} equipo(s) próximos a vencer. Las alertas automáticas se envían via Edge Function. Configura Resend en Supabase para activar el envío de emails.`;
+            msg.className = "text-sm font-bold mt-3 text-amber-600";
+
+            // Mostrar resumen en consola para verificación
+            console.table(proximos);
+        }
+
+        // ===== INIT =====
         async function init() {
             const esAdmin = await checkAdmin();
             if (esAdmin) {
                 cargarUsuarios();
+                cargarConfigAlertas();
             }
         }
 
