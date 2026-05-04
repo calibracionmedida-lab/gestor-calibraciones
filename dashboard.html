@@ -379,61 +379,69 @@
         }
 
         async function guardarCambios() {
-            const codigo = document.getElementById('edit-id').value;
-            const valor = parseInt(document.getElementById('peri-valor').value);
-            const unidad = parseInt(document.getElementById('peri-unidad').value);
-            const mesesTotales = valor * unidad;
-            const notas = document.getElementById('edit-notas').value.trim();
-            const fechaISO = document.getElementById('edit-fecha').value;
-            const fechaCal = fechaISO ? fechaISOaES(fechaISO) : null;
-            const msg = document.getElementById('edit-msg');
+    const codigo = document.getElementById('edit-id').value;
+    const valor = parseInt(document.getElementById('peri-valor').value);
+    const unidad = parseInt(document.getElementById('peri-unidad').value);
+    const mesesTotales = valor * unidad;
+    const notas = document.getElementById('edit-notas').value.trim();
+    const fechaISO = document.getElementById('edit-fecha').value;
+    const fechaCal = fechaISO ? fechaISOaES(fechaISO) : null;
+    const msg = document.getElementById('edit-msg');
 
-            msg.innerText = 'Guardando...';
-            msg.className = 'text-sm font-bold text-center text-blue-500';
+    msg.innerText = 'Guardando...';
+    msg.className = 'text-sm font-bold text-center text-blue-500';
 
-            const { data: { user } } = await client.auth.getUser();
+    const { data: { user } } = await client.auth.getUser();
 
-            const promises = [];
+    const { error: errorConfig } = await client
+        .from('equipos_config')
+        .upsert({
+            codigo,
+            periodo_meses: mesesTotales,
+            notas,
+            updated_at: new Date().toISOString(),
+            updated_by: user?.id || null
+        }, { onConflict: 'codigo' });
 
-            promises.push(
-                client.from('equipos_config').upsert({
-                    codigo,
-                    periodo_meses: mesesTotales,
-                    notas,
-                    updated_at: new Date().toISOString(),
-                    updated_by: user?.id || null
-                }, { onConflict: 'codigo' })
-            );
+    if (errorConfig) {
+        msg.innerText = 'Error al guardar configuración: ' + errorConfig.message;
+        msg.className = 'text-sm font-bold text-center text-red-500';
+        return;
+    }
 
-            if (fechaCal !== null) {
-                promises.push(
-                    client.from('equipos')
-                        .update({ 'Fecha cal.': fechaCal })
-                        .eq('Código', codigo)
-                );
-            }
+    if (fechaCal !== null) {
+        const { data: filas, error: errorFecha } = await client
+            .from('equipos')
+            .update({ 'Fecha cal.': fechaCal })
+            .eq('Código', codigo)
+            .select('Código');
 
-            const results = await Promise.all(promises);
-            const error = results.find(r => r.error)?.error;
-
-            if (error) {
-                msg.innerText = 'Error al guardar: ' + error.message;
-                msg.className = 'text-sm font-bold text-center text-red-500';
-                return;
-            }
-
-            msg.innerText = '✅ Guardado correctamente';
-            msg.className = 'text-sm font-bold text-center text-green-600';
-
-            listadoEquipos = listadoEquipos.map(e => e['Código'] === codigo ? { ...e, 'Fecha cal.': fechaCal } : e);
-            configEquipos[codigo] = { codigo, periodo_meses: mesesTotales, notas };
-
-            setTimeout(() => {
-                closeEdit();
-                renderTabla();
-            }, 800);
+        if (errorFecha) {
+            msg.innerText = 'Error al guardar fecha: ' + errorFecha.message;
+            msg.className = 'text-sm font-bold text-center text-red-500';
+            return;
         }
 
+        if (!filas || filas.length === 0) {
+            msg.innerText = 'No se actualizó ninguna fila. Revisa RLS o el nombre exacto de la columna.';
+            msg.className = 'text-sm font-bold text-center text-amber-600';
+            return;
+        }
+    }
+
+    msg.innerText = '✅ Guardado correctamente';
+    msg.className = 'text-sm font-bold text-center text-green-600';
+
+    listadoEquipos = listadoEquipos.map(e =>
+        e['Código'] === codigo ? { ...e, 'Fecha cal.': fechaCal } : e
+    );
+    configEquipos[codigo] = { codigo, periodo_meses: mesesTotales, notas };
+
+    setTimeout(() => {
+        closeEdit();
+        renderTabla();
+    }, 800);
+}
         function closeEdit() {
             document.getElementById('modal-edit').classList.add('hidden');
         }
