@@ -8,15 +8,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-    
+
     <style>
         @keyframes heartbeat-text {
             0%, 100% { color: #dc2626; transform: scale(1); }
             50% { color: #f87171; transform: scale(1.05); }
         }
-        .animate-text-red { 
+        .animate-text-red {
             display: inline-block;
-            animation: heartbeat-text 1.2s infinite; 
+            animation: heartbeat-text 1.2s infinite;
             font-weight: 900;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
@@ -39,7 +39,7 @@
             <button onclick="showSection('calendario')" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800/60 transition-all flex items-center gap-3 active:scale-95 group">
                 <i class="fa-solid fa-calendar-days w-6 text-center text-blue-400 group-hover:scale-110 transition-transform"></i> Calendario
             </button>
-            
+
             <div id="menu-admin" class="hidden border-t border-slate-800 mt-5 pt-5 space-y-2">
                 <p class="text-[10px] font-black text-slate-500 uppercase px-3 mb-2 tracking-widest">Administración</p>
                 <button onclick="location.href='settings.html'" class="w-full text-left p-3.5 rounded-xl hover:bg-slate-800 flex items-center gap-3 transition-colors text-slate-300">
@@ -105,7 +105,6 @@
         </div>
     </main>
 
-    <!-- Modal Edición -->
     <div id="modal-edit" class="fixed inset-0 bg-slate-900/60 hidden z-50 flex justify-end backdrop-blur-sm">
         <div class="bg-white w-full max-w-md h-full p-8 shadow-2xl animate-[slideIn_0.3s_ease-out] flex flex-col">
             <div class="flex justify-between items-center mb-10 border-b border-slate-100 pb-5">
@@ -117,17 +116,17 @@
                     <i class="fa-solid fa-circle-xmark text-3xl"></i>
                 </button>
             </div>
+
             <div class="space-y-8 flex-1">
                 <input type="hidden" id="edit-id">
 
-                <!-- Fecha calibración (solo informativa, viene de Mansis) -->
-                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Última Calibración (Mansis)</p>
-                    <p id="edit-fecha-display" class="text-lg font-mono font-bold text-slate-700">-</p>
-                    <p class="text-xs text-slate-400 mt-1 italic">Este valor se actualiza automáticamente desde Mansis</p>
+                <div>
+                    <label class="block text-[11px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Última Calibración</label>
+                    <input type="date" id="edit-fecha"
+                        class="w-full p-4 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm font-bold">
+                    <p class="text-xs text-slate-400 mt-2 italic">Esta fecha se guardará en la tabla equipos.</p>
                 </div>
 
-                <!-- Periodicidad — se guarda en equipos_config -->
                 <div>
                     <label class="block text-[11px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Periodicidad de Calibración</label>
                     <div class="flex gap-2.5">
@@ -143,7 +142,6 @@
                     </p>
                 </div>
 
-                <!-- Notas opcionales -->
                 <div>
                     <label class="block text-[11px] font-black text-slate-400 uppercase mb-2 ml-1 tracking-wider">Notas (opcional)</label>
                     <textarea id="edit-notas" rows="3" placeholder="Observaciones sobre esta calibración..."
@@ -166,10 +164,9 @@
 
         let calendar;
         let filtroAlertas = false;
-        let listadoEquipos = [];       // datos de equipos (Mansis)
-        let configEquipos = {};        // mapa codigo → {periodo_meses, notas} (equipos_config)
+        let listadoEquipos = [];
+        let configEquipos = {};
 
-        // 1. AUTH
         async function checkUser() {
             const { data: { user }, error } = await client.auth.getUser();
             if (error || !user) { window.location.href = 'index.html'; return; }
@@ -179,14 +176,13 @@
             }
         }
 
-        // 2. CÁLCULO DE FECHAS
         function calcularProxima(fechaStr, mesesTotales = 12) {
             if (!fechaStr || fechaStr === '-' || fechaStr === 'No') {
                 return { fecha: 'Pendiente', clase: 'text-slate-300 italic font-medium', caducado: false, proximo: false, obj: null };
             }
             try {
                 const p = fechaStr.split('/');
-                const fecha = new Date(p[2], p[1]-1, p[0]);
+                const fecha = new Date(p[2], p[1] - 1, p[0]);
                 fecha.setMonth(fecha.getMonth() + parseInt(mesesTotales));
                 const hoy = new Date();
                 const diffDias = (fecha - hoy) / (1000 * 60 * 60 * 24);
@@ -206,12 +202,10 @@
             }
         }
 
-        // 3. CARGA DE DATOS — equipos + equipos_config juntos
         async function cargarDatos() {
             const body = document.getElementById('tabla-body');
             body.innerHTML = '<tr><td colspan="5" class="p-10 text-center"><i class="fa-solid fa-sync fa-spin text-blue-500 text-2xl"></i></td></tr>';
 
-            // Cargar en paralelo
             const [resEquipos, resConfig] = await Promise.all([
                 client.from('equipos').select('*'),
                 client.from('equipos_config').select('*')
@@ -222,17 +216,15 @@
                 return;
             }
 
-            // Construir mapa de config por código
             configEquipos = {};
             (resConfig.data || []).forEach(c => {
                 configEquipos[c.codigo] = c;
             });
 
-            listadoEquipos = resEquipos.data;
+            listadoEquipos = resEquipos.data || [];
             renderTabla();
         }
 
-        // 4. RENDER
         function renderTabla() {
             const body = document.getElementById('tabla-body');
             if (listadoEquipos.length === 0) return;
@@ -249,9 +241,9 @@
                     (item['Nombre'] && item['Nombre'].toLowerCase().includes(f_gen)) ||
                     (item['Código'] && item['Código'].toLowerCase().includes(f_gen)) ||
                     (item['GFH'] && item['GFH'].toLowerCase().includes(f_gen));
-                const okCentro  = !f_gfh || (item['GFH'] && item['GFH'].includes(f_gfh));
-                const okAlerta  = !filtroAlertas || prox.caducado || prox.proximo;
-                const okCalib   = !f_cal || item['Equipos con calibración'] === 'Sí';
+                const okCentro = !f_gfh || (item['GFH'] && item['GFH'].includes(f_gfh));
+                const okAlerta = !filtroAlertas || prox.caducado || prox.proximo;
+                const okCalib = !f_cal || item['Equipos con calibración'] === 'Sí';
                 return okBusqueda && okCentro && okAlerta && okCalib;
             });
 
@@ -264,7 +256,7 @@
                 const config = configEquipos[item['Código']] || {};
                 const periodo = config.periodo_meses || 12;
                 const prox = calcularProxima(item['Fecha cal.'], periodo);
-                const periodoTexto = periodo % 12 === 0 ? `${periodo/12} año(s)` : `${periodo} mes(es)`;
+                const periodoTexto = periodo % 12 === 0 ? `${periodo / 12} año(s)` : `${periodo} mes(es)`;
                 return `
                 <tr class="hover:bg-blue-50/40 transition-colors group">
                     <td class="p-4">
@@ -286,7 +278,6 @@
             }).join('');
         }
 
-        // 5. BOTÓN REQUIEREN CALIBRACIÓN (incluye próximos + caducados)
         function toggleAlertas() {
             filtroAlertas = !filtroAlertas;
             const btn = document.getElementById('btn-alertas');
@@ -300,7 +291,6 @@
             renderTabla();
         }
 
-        // 6. CALENDARIO
         function initCalendar() {
             const container = document.getElementById('calendar-container');
             if (calendar) calendar.destroy();
@@ -320,7 +310,7 @@
                                 (item['Nombre'] && item['Nombre'].toLowerCase().includes(f_gen)) ||
                                 (item['Código'] && item['Código'].toLowerCase().includes(f_gen));
                             const okCentro = !f_gfh || (item['GFH'] && item['GFH'].includes(f_gfh));
-                            const okCalib  = !f_cal || item['Equipos con calibración'] === 'Sí';
+                            const okCalib = !f_cal || item['Equipos con calibración'] === 'Sí';
                             return okBusqueda && okCentro && okCalib && item['Equipos con calibración'] === 'Sí';
                         })
                         .map(item => {
@@ -343,14 +333,29 @@
             calendar.render();
         }
 
-        // 7. TABS
         function showSection(id) {
             document.getElementById('sec-inventario').classList.toggle('hidden', id !== 'inventario');
             document.getElementById('sec-calendario').classList.toggle('hidden', id !== 'calendario');
             if (id === 'calendario') setTimeout(() => initCalendar(), 100);
         }
 
-        // 8. MODAL EDICIÓN — lee/escribe en equipos_config, no en equipos
+        function fechaESaISO(fechaStr) {
+            if (!fechaStr || fechaStr === '-' || fechaStr === 'No') return '';
+            const p = fechaStr.split('/');
+            if (p.length !== 3) return '';
+            const d = p[0].padStart(2, '0');
+            const m = p[1].padStart(2, '0');
+            const y = p[2];
+            return `${y}-${m}-${d}`;
+        }
+
+        function fechaISOaES(isoStr) {
+            if (!isoStr) return '';
+            const p = isoStr.split('-');
+            if (p.length !== 3) return '';
+            return `${p[2]}/${p[1]}/${p[0]}`;
+        }
+
         function openEdit(item) {
             const codigo = item['Código'];
             const config = configEquipos[codigo] || {};
@@ -358,7 +363,7 @@
 
             document.getElementById('edit-id').value = codigo;
             document.getElementById('edit-nombre').innerText = item['Nombre'] || codigo;
-            document.getElementById('edit-fecha-display').innerText = item['Fecha cal.'] || 'Sin fecha registrada';
+            document.getElementById('edit-fecha').value = fechaESaISO(item['Fecha cal.']);
             document.getElementById('edit-notas').value = config.notas || '';
             document.getElementById('edit-msg').innerText = '';
 
@@ -374,53 +379,70 @@
         }
 
         async function guardarCambios() {
-            const codigo      = document.getElementById('edit-id').value;
-            const valor       = parseInt(document.getElementById('peri-valor').value);
-            const unidad      = parseInt(document.getElementById('peri-unidad').value);
+            const codigo = document.getElementById('edit-id').value;
+            const valor = parseInt(document.getElementById('peri-valor').value);
+            const unidad = parseInt(document.getElementById('peri-unidad').value);
             const mesesTotales = valor * unidad;
-            const notas       = document.getElementById('edit-notas').value.trim();
-            const msg         = document.getElementById('edit-msg');
+            const notas = document.getElementById('edit-notas').value.trim();
+            const fechaISO = document.getElementById('edit-fecha').value;
+            const fechaCal = fechaISO ? fechaISOaES(fechaISO) : null;
+            const msg = document.getElementById('edit-msg');
 
             msg.innerText = 'Guardando...';
             msg.className = 'text-sm font-bold text-center text-blue-500';
 
             const { data: { user } } = await client.auth.getUser();
 
-            // Upsert en equipos_config (no toca la tabla equipos)
-            const { error } = await client.from('equipos_config').upsert({
-                codigo,
-                periodo_meses: mesesTotales,
-                notas,
-                updated_at: new Date().toISOString(),
-                updated_by: user?.id || null
-            }, { onConflict: 'codigo' });
+            const promises = [];
+
+            promises.push(
+                client.from('equipos_config').upsert({
+                    codigo,
+                    periodo_meses: mesesTotales,
+                    notas,
+                    updated_at: new Date().toISOString(),
+                    updated_by: user?.id || null
+                }, { onConflict: 'codigo' })
+            );
+
+            if (fechaCal !== null) {
+                promises.push(
+                    client.from('equipos')
+                        .update({ 'Fecha cal.': fechaCal })
+                        .eq('Código', codigo)
+                );
+            }
+
+            const results = await Promise.all(promises);
+            const error = results.find(r => r.error)?.error;
 
             if (error) {
                 msg.innerText = 'Error al guardar: ' + error.message;
                 msg.className = 'text-sm font-bold text-center text-red-500';
-            } else {
-                msg.innerText = '✅ Guardado correctamente';
-                msg.className = 'text-sm font-bold text-center text-green-600';
-                // Actualizar mapa local sin recargar todo
-                configEquipos[codigo] = { codigo, periodo_meses: mesesTotales, notas };
-                setTimeout(() => {
-                    closeEdit();
-                    renderTabla();
-                }, 800);
+                return;
             }
+
+            msg.innerText = '✅ Guardado correctamente';
+            msg.className = 'text-sm font-bold text-center text-green-600';
+
+            listadoEquipos = listadoEquipos.map(e => e['Código'] === codigo ? { ...e, 'Fecha cal.': fechaCal } : e);
+            configEquipos[codigo] = { codigo, periodo_meses: mesesTotales, notas };
+
+            setTimeout(() => {
+                closeEdit();
+                renderTabla();
+            }, 800);
         }
 
         function closeEdit() {
             document.getElementById('modal-edit').classList.add('hidden');
         }
 
-        // 9. LOGOUT
         async function logout() {
             await client.auth.signOut();
             location.href = 'index.html';
         }
 
-        // 10. LISTENERS CALENDARIO
         function setupCalendarFilterListeners() {
             ['f_general', 'f_gfh', 'f_calibracion'].forEach(id => {
                 document.getElementById(id).addEventListener('change', () => {
@@ -429,7 +451,6 @@
             });
         }
 
-        // INICIO
         checkUser();
         cargarDatos();
         setupCalendarFilterListeners();
