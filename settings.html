@@ -152,6 +152,25 @@
                 </div>
             </div>
 
+            <!-- IMPORTAR CSV FECHAS -->
+            <div class="mb-6 bg-slate-50 border border-slate-200 rounded-2xl p-5">
+                <h3 class="text-lg font-black text-slate-800 mb-2">
+                    <i class="fa-solid fa-file-csv mr-2 text-blue-600"></i>Importar fechas de calibración por CSV
+                </h3>
+                <p class="text-sm text-slate-500 mb-4">
+                    El archivo debe contener al menos las columnas <b>Código</b> y <b>Fecha cal.</b>.
+                </p>
+                <div class="flex flex-col md:flex-row gap-3 items-start md:items-center">
+                    <input type="file" id="csv-file" accept=".csv"
+                        class="block w-full md:w-auto text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-600 file:text-white file:font-bold hover:file:bg-blue-700">
+                    <button onclick="importarCSVFechas()"
+                        class="px-5 py-3 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 transition-colors">
+                        Importar CSV
+                    </button>
+                </div>
+                <p id="csv-msg" class="text-sm font-bold mt-3"></p>
+            </div>
+
             <!-- Botones -->
             <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-100">
                 <button onclick="guardarConfigAlertas()"
@@ -228,7 +247,6 @@
         let emailsAlertas = [];
         let filtrosGFH = [];
 
-        // ===== AUTH =====
         async function checkAdmin() {
             const { data: { user } } = await client.auth.getUser();
             if (!user) { window.location.href = 'index.html'; return false; }
@@ -237,7 +255,6 @@
             return true;
         }
 
-        // ===== USUARIOS =====
         async function cargarUsuarios() {
             const tbody = document.getElementById('tabla-usuarios');
             tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Cargando...</td></tr>';
@@ -353,7 +370,6 @@
             setTimeout(() => { cerrarModalEditar(); cargarUsuarios(); }, 1000);
         }
 
-        // ===== ALERTAS — EMAILS =====
         function renderEmailTags() {
             const container = document.getElementById('lista-emails');
             if (emailsAlertas.length === 0) {
@@ -389,7 +405,6 @@
             renderEmailTags();
         }
 
-        // ===== ALERTAS — GFH =====
         function renderGFHTags() {
             const container = document.getElementById('lista-gfh');
             const btnTodos = document.getElementById('btn-todos-gfh');
@@ -431,7 +446,6 @@
             renderGFHTags();
         }
 
-        // ===== ALERTAS — CARGA CONFIG =====
         async function cargarConfigAlertas() {
             const { data, error } = await client.from('alertas_config').select('*').limit(1).single();
             if (error || !data) {
@@ -451,7 +465,6 @@
             document.getElementById('alertas-estado').innerText = `Última actualización: ${fecha}`;
         }
 
-        // ===== ALERTAS — GUARDAR =====
         async function guardarConfigAlertas() {
             const msg = document.getElementById('alertas-msg');
             const dias = parseInt(document.getElementById('dias-antelacion').value);
@@ -496,7 +509,6 @@
             }
         }
 
-        // ===== ALERTAS — REVISAR AHORA =====
         async function enviarAlertasAhora() {
             const msg = document.getElementById('alertas-msg');
             const preview = document.getElementById('alertas-preview');
@@ -513,7 +525,6 @@
                 return;
             }
 
-            // Cargar equipos y sus configs de periodicidad
             const [resEquipos, resConfig] = await Promise.all([
                 client.from('equipos')
                     .select('"Código", "Nombre", "Fecha cal.", "Equipos con calibración", "GFH"')
@@ -528,11 +539,9 @@
                 return;
             }
 
-            // Mapa de periodicidades personalizadas
             const configMap = {};
             (resConfig.data || []).forEach(c => { configMap[c.codigo] = c; });
 
-            // Aplicar filtro GFH si hay alguno configurado
             let equipos = resEquipos.data || [];
             if (config.filtros_gfh && config.filtros_gfh.length > 0) {
                 equipos = equipos.filter(eq =>
@@ -558,14 +567,12 @@
                 }
                 if (isNaN(fechaCal)) continue;
 
-                // Usar periodicidad personalizada si existe, sino la global
                 const periodoMeses = configMap[eq['Código']]?.periodo_meses || periodoDefault;
                 const fechaVenc = new Date(fechaCal);
                 fechaVenc.setMonth(fechaVenc.getMonth() + periodoMeses);
 
                 const diffDias = Math.floor((fechaVenc - hoy) / (1000 * 60 * 60 * 24));
 
-                // Incluir caducados (diffDias < 0) Y próximos a vencer
                 if (diffDias <= diasAntelacion) {
                     proximos.push({
                         codigo: eq['Código'],
@@ -587,10 +594,8 @@
                 return;
             }
 
-            // Ordenar: primero caducados, luego por días restantes
             proximos.sort((a, b) => a.diffDias - b.diffDias);
 
-            // Mostrar previsualización
             msg.innerText = `📋 ${proximos.length} equipo(s) requieren atención. El envío automático de emails se activa con la Edge Function de Supabase.`;
             msg.className = "text-sm font-bold mt-3 text-amber-600";
 
@@ -621,7 +626,94 @@
             preview.classList.remove('hidden');
         }
 
-        // ===== INIT =====
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const next = line[i + 1];
+
+                if (char === '"' && inQuotes && next === '"') {
+                    current += '"';
+                    i++;
+                } else if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        async function importarCSVFechas() {
+            const fileInput = document.getElementById('csv-file');
+            const msg = document.getElementById('csv-msg');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                msg.innerText = 'Selecciona un archivo CSV.';
+                msg.className = 'text-sm font-bold mt-3 text-red-500';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const text = await file.text();
+            const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+
+            if (lines.length < 2) {
+                msg.innerText = 'El CSV está vacío o no tiene datos.';
+                msg.className = 'text-sm font-bold mt-3 text-red-500';
+                return;
+            }
+
+            const headers = parseCSVLine(lines[0]).map(h => h.trim());
+            const idxCodigo = headers.indexOf('Código');
+            const idxFecha = headers.indexOf('Fecha cal.');
+
+            if (idxCodigo === -1 || idxFecha === -1) {
+                msg.innerText = 'El CSV debe tener columnas: Código y Fecha cal.';
+                msg.className = 'text-sm font-bold mt-3 text-red-500';
+                return;
+            }
+
+            msg.innerText = 'Importando...';
+            msg.className = 'text-sm font-bold mt-3 text-blue-500';
+
+            let ok = 0;
+            let fail = 0;
+
+            for (let i = 1; i < lines.length; i++) {
+                const cols = parseCSVLine(lines[i]);
+                const codigo = (cols[idxCodigo] || '').trim();
+                const fecha = (cols[idxFecha] || '').trim();
+
+                if (!codigo || !fecha) {
+                    fail++;
+                    continue;
+                }
+
+                const { error } = await client
+                    .from('equipos')
+                    .update({ 'Fecha cal.': fecha })
+                    .eq('Código', codigo);
+
+                if (error) fail++;
+                else ok++;
+            }
+
+            msg.innerText = `Importación terminada: ${ok} actualizados, ${fail} fallos.`;
+            msg.className = fail ? 'text-sm font-bold mt-3 text-orange-600' : 'text-sm font-bold mt-3 text-green-600';
+
+            if (typeof cargarDatos === 'function') {
+                await cargarDatos();
+            }
+        }
+
         async function init() {
             const esAdmin = await checkAdmin();
             if (esAdmin) {
